@@ -388,6 +388,23 @@ button:hover,
   box-shadow: 0 8px 18px rgba(24, 33, 39, 0.06);
 }
 
+.primary-action {
+  min-height: 46px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(23, 71, 106, 0.18);
+  background: linear-gradient(180deg, #17476a, #123753);
+  color: white;
+  box-shadow: 0 12px 22px rgba(23, 71, 106, 0.18);
+}
+
+.presentation-footer-action {
+  display: none;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
 body.presentation-mode .sidebar {
   display: none;
 }
@@ -553,6 +570,14 @@ body.presentation-mode .toolbar-actions button {
   font-weight: 800;
   background: #fffdf8;
   border-color: rgba(143, 74, 53, 0.2);
+}
+
+body.presentation-mode .toolbar-actions #presentationToggleBtn {
+  display: none;
+}
+
+body.presentation-mode .presentation-footer-action {
+  display: block;
 }
 
 button {

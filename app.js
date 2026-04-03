@@ -407,6 +407,7 @@ const showAllBtn = document.getElementById("showAllBtn");
 const presentationToggleBtn = document.getElementById("presentationToggleBtn");
 const prevLabBtn = document.getElementById("prevLabBtn");
 const nextLabBtn = document.getElementById("nextLabBtn");
+const enterWorkingModeBtn = document.getElementById("enterWorkingModeBtn");
 
 const detailTitle = document.getElementById("detailTitle");
 const detailSummary = document.getElementById("detailSummary");
@@ -469,7 +470,7 @@ const state = {
   search: "",
   status: "all",
   selectedId: labs[0]?.id ?? null,
-  presentationMode: window.localStorage.getItem(presentationKey) === "true",
+  presentationMode: window.localStorage.getItem(presentationKey) !== "false",
 };
 
 function persistLabs() {
@@ -743,6 +744,12 @@ showAllBtn.addEventListener("click", () => {
 
 presentationToggleBtn.addEventListener("click", () => {
   state.presentationMode = !state.presentationMode;
+  persistPresentationMode();
+  render();
+});
+
+enterWorkingModeBtn.addEventListener("click", () => {
+  state.presentationMode = false;
   persistPresentationMode();
   render();
 });
