@@ -5,6 +5,7 @@ const defaultLabs = [
   {
     id: "robotics",
     name: "Robotics Lab",
+    shortName: "Robotics",
     status: "proposed",
     visual: "robotics",
     outlook: "New resource planned for ITEC",
@@ -33,6 +34,7 @@ const defaultLabs = [
   {
     id: "hvac",
     name: "HVAC Lab",
+    shortName: "HVAC",
     status: "planned",
     visual: "hvac",
     outlook: "Strong fit for ITEC pending final move scope",
@@ -60,6 +62,7 @@ const defaultLabs = [
   {
     id: "cnc",
     name: "CNC Lab",
+    shortName: "CNC",
     status: "planned",
     visual: "cnc",
     outlook: "Candidate for advanced manufacturing zone",
@@ -87,6 +90,7 @@ const defaultLabs = [
   {
     id: "iot",
     name: "IoT Lab",
+    shortName: "IoT",
     status: "proposed",
     visual: "iot",
     outlook: "New resource planned for ITEC",
@@ -115,6 +119,7 @@ const defaultLabs = [
   {
     id: "gis",
     name: "GIS Lab",
+    shortName: "GIS",
     status: "investigation",
     visual: "gis",
     outlook: "Needs stay-vs-move decision",
@@ -142,6 +147,7 @@ const defaultLabs = [
   {
     id: "xr",
     name: "AR/VR / XR Space",
+    shortName: "XR",
     status: "planned",
     visual: "xr",
     outlook: "Strong shared-use center asset",
@@ -169,6 +175,7 @@ const defaultLabs = [
   {
     id: "data-center",
     name: "Data Center",
+    shortName: "Data Center",
     status: "proposed",
     visual: "data",
     outlook: "New infrastructure resource for ITEC",
@@ -198,6 +205,7 @@ const defaultLabs = [
   {
     id: "network-fiber",
     name: "Network Engineering / Fiber Optics Area",
+    shortName: "Network / Fiber",
     status: "planned",
     visual: "network",
     outlook: "Likely core technical area in ITEC",
@@ -226,6 +234,7 @@ const defaultLabs = [
   {
     id: "soc",
     name: "Security Operations Center",
+    shortName: "Security Ops",
     status: "planned",
     visual: "security",
     outlook: "Likely center showcase and teaching environment",
@@ -252,6 +261,7 @@ const defaultLabs = [
   {
     id: "smart-factory",
     name: "Smart Factory / RFID / Supply Chain Operations Lab",
+    shortName: "Smart Factory",
     status: "planned",
     visual: "factory",
     outlook: "Likely major experiential lab for ITEC",
@@ -289,6 +299,7 @@ const defaultLabs = [
   {
     id: "digital-twin",
     name: "Digital Twin / Simulation Lab",
+    shortName: "Digital Twin",
     status: "investigation",
     visual: "twin",
     outlook: "May be combined with other data/software spaces",
@@ -314,6 +325,7 @@ const defaultLabs = [
   {
     id: "analytics",
     name: "Data & Analytics Lab",
+    shortName: "Analytics",
     status: "planned",
     visual: "analytics",
     outlook: "Shared analytics environment",
@@ -337,6 +349,7 @@ const defaultLabs = [
   {
     id: "healthcare-tech",
     name: "Healthcare Technology / Simulation Space",
+    shortName: "Healthcare Tech",
     status: "investigation",
     visual: "health",
     outlook: "Data collection planned from Building 14",
@@ -364,6 +377,7 @@ const defaultLabs = [
   {
     id: "digital-media",
     name: "Digital Media / Visualization Space / Maker Space",
+    shortName: "Digital Media",
     status: "investigation",
     visual: "media",
     outlook: "Needs definition of final footprint and shared use",
@@ -400,7 +414,10 @@ const totalLabsEl = document.getElementById("totalLabs");
 const plannedLabsEl = document.getElementById("plannedLabs");
 const investigationLabsEl = document.getElementById("investigationLabs");
 const proposedLabsEl = document.getElementById("proposedLabs");
+const statusDonut = document.getElementById("statusDonut");
+const statusDonutLegend = document.getElementById("statusDonutLegend");
 const searchInput = document.getElementById("searchInput");
+const toolbarSearchInput = document.getElementById("toolbarSearchInput");
 const statusFilters = document.getElementById("statusFilters");
 const labGrid = document.getElementById("labGrid");
 const showAllBtn = document.getElementById("showAllBtn");
@@ -408,15 +425,19 @@ const presentationToggleBtn = document.getElementById("presentationToggleBtn");
 const prevLabBtn = document.getElementById("prevLabBtn");
 const nextLabBtn = document.getElementById("nextLabBtn");
 const enterWorkingModeBtn = document.getElementById("enterWorkingModeBtn");
+const statCards = Array.from(document.querySelectorAll(".stat-card[data-status]"));
 
 const detailTitle = document.getElementById("detailTitle");
 const detailSummary = document.getElementById("detailSummary");
 const detailStatusSelect = document.getElementById("detailStatusSelect");
 const detailStatusValue = document.getElementById("detailStatusValue");
+const detailPanel = document.getElementById("detailPanel");
 const detailOutlook = document.getElementById("detailOutlook");
 const detailEquipment = document.getElementById("detailEquipment");
 const equipmentSummary = document.getElementById("equipmentSummary");
 const equipmentOwnershipSummary = document.getElementById("equipmentOwnershipSummary");
+const equipmentReadinessValue = document.getElementById("equipmentReadinessValue");
+const equipmentReadinessFill = document.getElementById("equipmentReadinessFill");
 const detailSpace = document.getElementById("detailSpace");
 const detailNotes = document.getElementById("detailNotes");
 
@@ -424,6 +445,12 @@ const ownershipConfig = {
   owned: "Already Owned",
   purchase: "Needs Purchase",
   investigate: "Need To Confirm",
+};
+
+const ownershipSourceConfig = {
+  owned: "Existing Resource",
+  purchase: "New Purchase",
+  investigate: "Planning Review",
 };
 
 const labVisuals = {
@@ -471,7 +498,18 @@ const state = {
   status: "all",
   selectedId: labs[0]?.id ?? null,
   presentationMode: window.localStorage.getItem(presentationKey) !== "false",
+  lastRenderedSelectedId: null,
 };
+
+function animateDetailPanel() {
+  detailPanel.classList.remove("is-transitioning");
+  void detailPanel.offsetWidth;
+  detailPanel.classList.add("is-transitioning");
+}
+
+function updateTopContextState() {
+  document.body.classList.toggle("top-condensed", window.scrollY > 120);
+}
 
 function persistLabs() {
   window.localStorage.setItem(storageKey, JSON.stringify(labs));
@@ -486,10 +524,32 @@ function countByStatus(status) {
 }
 
 function updateStats() {
-  totalLabsEl.textContent = String(labs.length);
-  plannedLabsEl.textContent = String(countByStatus("planned"));
-  investigationLabsEl.textContent = String(countByStatus("investigation"));
-  proposedLabsEl.textContent = String(countByStatus("proposed"));
+  const total = labs.length;
+  const planned = countByStatus("planned");
+  const investigation = countByStatus("investigation");
+  const proposed = countByStatus("proposed");
+
+  totalLabsEl.textContent = String(total);
+  plannedLabsEl.textContent = String(planned);
+  investigationLabsEl.textContent = String(investigation);
+  proposedLabsEl.textContent = String(proposed);
+
+  const plannedPct = total ? Math.round((planned / total) * 100) : 0;
+  const investigationPct = total ? Math.round((investigation / total) * 100) : 0;
+  const proposedPct = total ? Math.round((proposed / total) * 100) : 0;
+
+  statusDonut.style.background = `conic-gradient(
+    #d8ebf8 0% ${plannedPct}%,
+    #f7e4ba ${plannedPct}% ${plannedPct + investigationPct}%,
+    #dbeedc ${plannedPct + investigationPct}% ${plannedPct + investigationPct + proposedPct}%,
+    rgba(24, 33, 39, 0.06) ${plannedPct + investigationPct + proposedPct}% 100%
+  )`;
+
+  statusDonutLegend.innerHTML = `
+    <span><i class="legend-dot planned"></i> Planned</span>
+    <span><i class="legend-dot investigation"></i> Investigation</span>
+    <span><i class="legend-dot proposed"></i> New</span>
+  `;
 }
 
 function createStatusFilters() {
@@ -534,6 +594,10 @@ function renderStatusFilterState() {
     const key = Object.keys(statusConfig)[index];
     button.classList.toggle("active", key === state.status);
   });
+
+  statCards.forEach((card) => {
+    card.classList.toggle("active", card.dataset.status === state.status);
+  });
 }
 
 function renderLabGrid() {
@@ -560,16 +624,24 @@ function renderLabGrid() {
     card.className = `panel lab-card${lab.id === state.selectedId ? " selected" : ""}`;
     card.tabIndex = 0;
     const visual = labVisuals[lab.visual] || { emoji: "•", className: "visual-default" };
+    const counts = equipmentCounts(lab.equipment);
     card.innerHTML = state.presentationMode
       ? `
         <div class="lab-header">
           <div class="lab-visual ${visual.className}" aria-hidden="true">${visual.emoji}</div>
-          <div class="lab-title">${lab.name}</div>
+          <div class="lab-title-wrap">
+            <div class="lab-title">${lab.shortName || lab.name}</div>
+            <div class="lab-readiness-dots" aria-hidden="true">
+              <span class="readiness-dot owned" title="Already owned: ${counts.owned}"></span>
+              <span class="readiness-dot purchase" title="Needs purchase: ${counts.purchase}"></span>
+              <span class="readiness-dot investigate" title="Need to confirm: ${counts.investigate}"></span>
+            </div>
+          </div>
         </div>
       `
       : `
         <div class="lab-header">
-          <div class="lab-title">${lab.name}</div>
+          <div class="lab-title">${lab.shortName || lab.name}</div>
           <span class="status-pill ${lab.status}">${statusConfig[lab.status].label}</span>
         </div>
         <p class="lab-summary">${lab.summary}</p>
@@ -626,8 +698,44 @@ function equipmentCounts(items) {
   );
 }
 
+function spaceIcon(item) {
+  const text = item.toLowerCase();
+  if (text.includes("electrical") || text.includes("power")) return "🔌";
+  if (text.includes("storage") || text.includes("parts") || text.includes("tools")) return "📦";
+  if (text.includes("network") || text.includes("data") || text.includes("remote")) return "🌐";
+  if (text.includes("safety") || text.includes("secure")) return "🛡️";
+  if (text.includes("display") || text.includes("visual") || text.includes("projection")) return "🖥️";
+  if (text.includes("collaboration") || text.includes("seating") || text.includes("review")) return "👥";
+  if (text.includes("workbench") || text.includes("bench")) return "🛠️";
+  return "•";
+}
+
+function renderSpace(items) {
+  detailSpace.innerHTML = "";
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    if (state.presentationMode) {
+      li.innerHTML = `
+        <div class="space-item">
+          <span class="space-icon" aria-hidden="true">${spaceIcon(item)}</span>
+          <span>${item}</span>
+        </div>
+      `;
+    } else {
+      li.textContent = item;
+    }
+    detailSpace.appendChild(li);
+  });
+}
+
 function renderEquipment(selectedLab) {
   const counts = equipmentCounts(selectedLab.equipment);
+  const readiness = selectedLab.equipment.length
+    ? Math.round((counts.owned / selectedLab.equipment.length) * 100)
+    : 0;
+
+  equipmentReadinessValue.textContent = `${readiness}%`;
+  equipmentReadinessFill.style.width = `${readiness}%`;
   equipmentSummary.innerHTML = `
     <span class="mini-pill owned">Owned: ${counts.owned}</span>
     <span class="mini-pill purchase">Purchase: ${counts.purchase}</span>
@@ -637,6 +745,36 @@ function renderEquipment(selectedLab) {
     `${counts.owned} already owned, ${counts.purchase} needing purchase, and ${counts.investigate} needing confirmation.`;
 
   detailEquipment.innerHTML = "";
+
+  if (state.presentationMode) {
+    const table = document.createElement("table");
+    table.className = "equipment-table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Status</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    selectedLab.equipment.forEach((item) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${item.name}</td>
+        <td><span class="table-badge ${item.ownership}">${ownershipConfig[item.ownership]}</span></td>
+        <td>${ownershipSourceConfig[item.ownership]}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    detailEquipment.appendChild(table);
+    return;
+  }
 
   selectedLab.equipment.forEach((item, index) => {
     const row = document.createElement("div");
@@ -683,6 +821,8 @@ function renderDetailPanel() {
     detailEquipment.innerHTML = "";
     equipmentSummary.innerHTML = "";
     equipmentOwnershipSummary.textContent = "";
+    equipmentReadinessValue.textContent = "0%";
+    equipmentReadinessFill.style.width = "0%";
     detailSpace.innerHTML = "";
     detailNotes.innerHTML = "";
     prevLabBtn.disabled = true;
@@ -706,22 +846,34 @@ function renderDetailPanel() {
   detailStatusValue.className = `detail-status-value ${selectedLab.status}`;
   detailOutlook.textContent = selectedLab.outlook;
   renderEquipment(selectedLab);
-  fillList(detailSpace, selectedLab.space);
+  renderSpace(selectedLab.space);
   fillList(detailNotes, selectedLab.notes);
   prevLabBtn.disabled = visibleLabs.length <= 1;
   nextLabBtn.disabled = visibleLabs.length <= 1;
 }
 
 function render() {
+  const selectedChanged = state.lastRenderedSelectedId !== state.selectedId;
   document.body.classList.toggle("presentation-mode", state.presentationMode);
   presentationToggleBtn.textContent = state.presentationMode ? "Working Mode" : "Presentation Mode";
   renderStatusFilterState();
   renderLabGrid();
   renderDetailPanel();
+  if (selectedChanged && state.lastRenderedSelectedId !== null) {
+    animateDetailPanel();
+  }
+  state.lastRenderedSelectedId = state.selectedId;
 }
 
 searchInput.addEventListener("input", (event) => {
   state.search = event.target.value;
+  toolbarSearchInput.value = state.search;
+  render();
+});
+
+toolbarSearchInput.addEventListener("input", (event) => {
+  state.search = event.target.value;
+  searchInput.value = state.search;
   render();
 });
 
@@ -762,6 +914,24 @@ nextLabBtn.addEventListener("click", () => {
   moveSelection(1);
 });
 
+statCards.forEach((card) => {
+  const applyFilter = () => {
+    state.status = card.dataset.status;
+    render();
+  };
+
+  card.addEventListener("click", applyFilter);
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      applyFilter();
+    }
+  });
+});
+
 updateStats();
 createStatusFilters();
 render();
+updateTopContextState();
+
+window.addEventListener("scroll", updateTopContextState, { passive: true });

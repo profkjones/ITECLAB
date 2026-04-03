@@ -35,6 +35,17 @@ body {
   margin: 24px auto 40px;
 }
 
+.top-context {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-top: 10px;
+  margin-bottom: 18px;
+  background: linear-gradient(180deg, rgba(247, 243, 235, 0.96), rgba(247, 243, 235, 0.84), transparent);
+  backdrop-filter: blur(10px);
+  transition: padding 180ms ease, margin 180ms ease, transform 180ms ease;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -45,10 +56,11 @@ body {
 
 .hero {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
   padding: 20px 22px;
   margin-bottom: 14px;
+  transition: padding 180ms ease, gap 180ms ease, margin 180ms ease;
 }
 
 .eyebrow {
@@ -79,6 +91,7 @@ h2 {
 h1 {
   font-size: clamp(1.8rem, 3vw, 3.1rem);
   max-width: none;
+  transition: font-size 180ms ease;
 }
 
 h2 {
@@ -102,17 +115,27 @@ h3 {
 }
 
 .hero-text {
-  max-width: 58ch;
+  max-width: 54ch;
   margin: 10px 0 0;
   font-size: 0.96rem;
   line-height: 1.55;
+  text-align: center;
+  transition: opacity 140ms ease, max-height 180ms ease, margin 180ms ease;
 }
 
 .sinclair-logo {
   display: block;
   width: min(240px, 100%);
   height: auto;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
+  transition: width 180ms ease, margin 180ms ease;
+}
+
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .hero-meta {
@@ -123,13 +146,7 @@ h3 {
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(143, 74, 53, 0.96), rgba(115, 47, 31, 0.88));
   color: white;
-}
-
-.sinclair-mark {
-  width: 102px;
-  height: auto;
-  justify-self: end;
-  opacity: 0.98;
+  transition: padding 180ms ease, gap 180ms ease;
 }
 
 .hero-meta .meta-label {
@@ -140,8 +157,8 @@ h3 {
 .field-label,
 .stat-label {
   display: block;
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: 0.88rem;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -150,11 +167,39 @@ h3 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 0;
+  transition: gap 180ms ease;
 }
 
 .stat-card {
   padding: 18px 20px;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-card.active {
+  border-color: rgba(23, 71, 106, 0.28);
+  box-shadow: 0 16px 28px rgba(23, 71, 106, 0.12);
+}
+
+.stat-total {
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.95), rgba(247, 242, 233, 0.92));
+}
+
+.stat-planned {
+  background: linear-gradient(180deg, rgba(216, 235, 248, 0.95), rgba(239, 247, 252, 0.92));
+}
+
+.stat-investigation {
+  background: linear-gradient(180deg, rgba(247, 228, 186, 0.9), rgba(255, 249, 236, 0.92));
+}
+
+.stat-proposed {
+  background: linear-gradient(180deg, rgba(219, 238, 220, 0.95), rgba(242, 250, 243, 0.92));
 }
 
 .stat-value {
@@ -166,6 +211,134 @@ h3 {
 .stat-card p {
   margin: 0;
   line-height: 1.5;
+  transition: opacity 140ms ease, max-height 180ms ease, margin 180ms ease;
+}
+
+body.top-condensed .top-context {
+  padding-top: 2px;
+  margin-bottom: 6px;
+}
+
+body.top-condensed .hero {
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px;
+  padding: 8px 14px;
+  margin-bottom: 0;
+}
+
+body.top-condensed .sinclair-logo {
+  width: min(140px, 100%);
+  margin-bottom: 2px;
+}
+
+body.top-condensed h1 {
+  font-size: clamp(1rem, 1.6vw, 1.45rem);
+}
+
+body.top-condensed .hero-text,
+body.top-condensed .stat-card p {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+body.top-condensed .hero-meta {
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+body.top-condensed .stats-grid {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  margin: 0;
+  gap: 0;
+}
+
+body.top-condensed .stat-card {
+  padding: 0;
+  min-height: 0;
+  border-width: 0;
+  box-shadow: none;
+}
+
+body.top-condensed .stat-donut-wrap {
+  margin-top: 0;
+}
+
+body.top-condensed .stat-donut {
+  width: 46px;
+  height: 46px;
+}
+
+body.top-condensed .stat-donut::after {
+  inset: 10px;
+}
+
+body.top-condensed .stat-value {
+  margin: 0;
+  font-size: 0;
+}
+
+.stat-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.stat-donut {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stat-donut::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: rgba(255, 252, 245, 0.96);
+}
+
+.stat-donut-legend {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.stat-donut-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot,
+.readiness-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.planned,
+.readiness-dot.owned {
+  background: #4f9660;
+}
+
+.legend-dot.investigation,
+.readiness-dot.purchase {
+  background: #d1a443;
+}
+
+.legend-dot.proposed,
+.readiness-dot.investigate {
+  background: #3f7db0;
 }
 
 .workspace {
@@ -293,6 +466,41 @@ button:hover,
   margin-top: 12px;
 }
 
+.equipment-readiness {
+  margin-top: 12px;
+}
+
+.readiness-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.readiness-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.readiness-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(24, 33, 39, 0.08);
+  overflow: hidden;
+}
+
+.readiness-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6db37b, #2f7a4d);
+}
+
 .equipment-ownership-summary {
   display: none;
   margin: 12px 0 0;
@@ -343,6 +551,65 @@ button:hover,
   background: rgba(255, 255, 255, 0.66);
 }
 
+.equipment-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 0.95rem;
+}
+
+.equipment-table th,
+.equipment-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.equipment-table th {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.table-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.table-badge.owned {
+  background: #dbeedc;
+  color: #245d2b;
+}
+
+.table-badge.purchase {
+  background: #d8ebf8;
+  color: #17476a;
+}
+
+.table-badge.investigate {
+  background: #f7e4ba;
+  color: #7e580f;
+}
+
+.space-item {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+}
+
+.space-icon {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
 .equipment-name {
   line-height: 1.5;
 }
@@ -377,6 +644,15 @@ button:hover,
 .toolbar-actions {
   display: flex;
   gap: 10px;
+}
+
+.toolbar-search {
+  min-width: min(360px, 100%);
+  flex: 1 1 320px;
+}
+
+.toolbar-search input {
+  width: 100%;
 }
 
 .toolbar-actions button {
@@ -425,10 +701,19 @@ body.presentation-mode .stats-grid {
 body.presentation-mode .toolbar {
   align-items: start;
   padding: 14px 16px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 body.presentation-mode .lab-card {
   padding: 12px 14px;
+}
+
+body.presentation-mode .lab-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(23, 71, 106, 0.22);
+  box-shadow: 0 14px 24px rgba(23, 71, 106, 0.1);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 body.presentation-mode .lab-summary,
@@ -479,14 +764,13 @@ body.presentation-mode .equipment-ownership-summary {
 body.presentation-mode .equipment-list {
   display: block;
   margin-top: 12px;
-  padding-left: 18px;
+  padding-left: 0;
 }
 
 body.presentation-mode .equipment-row {
-  display: list-item;
-  list-style: disc;
+  display: block;
   padding: 0;
-  margin: 0 0 8px;
+  margin: 0;
   border: 0;
   background: transparent;
   border-radius: 0;
@@ -508,7 +792,7 @@ body.presentation-mode .content {
 }
 
 body.presentation-mode .card-grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -519,6 +803,26 @@ body.presentation-mode .detail-panel {
 
 body.presentation-mode .lab-title {
   font-size: 0.95rem;
+  margin-right: 0;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+body.presentation-mode .lab-visual {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+body.presentation-mode .lab-title-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+body.presentation-mode .lab-readiness-dots {
+  display: inline-flex;
+  gap: 6px;
 }
 
 body.presentation-mode .status-pill {
@@ -526,9 +830,21 @@ body.presentation-mode .status-pill {
 }
 
 body.presentation-mode .lab-header {
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   justify-content: flex-start;
+}
+
+body.presentation-mode .lab-card.selected {
+  border-width: 2px;
+  border-color: rgba(23, 71, 106, 0.38);
+  background: linear-gradient(180deg, rgba(216, 235, 248, 0.72), rgba(255, 253, 248, 0.96));
+  box-shadow: 0 16px 30px rgba(23, 71, 106, 0.14);
+}
+
+body.presentation-mode .lab-card.selected .lab-visual {
+  transform: scale(1.04);
+  box-shadow: 0 10px 20px rgba(23, 71, 106, 0.14);
 }
 
 body.presentation-mode .detail-panel {
@@ -559,7 +875,7 @@ body.presentation-mode .toolbar h2 {
 }
 
 body.presentation-mode .toolbar-actions {
-  width: 100%;
+  width: auto;
   justify-content: flex-start;
   flex-wrap: wrap;
 }
@@ -603,7 +919,11 @@ button.ghost {
   padding: 20px;
   cursor: pointer;
   border: 1px solid rgba(24, 33, 39, 0.08);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
 }
 
 .lab-card.selected {
@@ -744,6 +1064,10 @@ button.ghost {
   top: 18px;
 }
 
+.detail-panel.is-transitioning {
+  animation: detail-panel-refresh 260ms ease;
+}
+
 .detail-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -777,6 +1101,18 @@ button.ghost {
 .empty-state {
   padding: 28px;
   text-align: center;
+}
+
+@keyframes detail-panel-refresh {
+  0% {
+    opacity: 0.3;
+    transform: translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -816,6 +1152,13 @@ button.ghost {
   .shell {
     width: min(100vw - 20px, 100%);
     margin-top: 10px;
+  }
+
+  .top-context {
+    position: static;
+    padding-top: 0;
+    background: transparent;
+    backdrop-filter: none;
   }
 
   .hero,

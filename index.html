@@ -14,58 +14,58 @@
   </head>
   <body>
     <main class="shell">
-      <section class="hero panel">
-        <div class="hero-copy">
-          <img
-            class="sinclair-logo"
-            src="https://www.sinclair.edu/www/assets/Image/marketing-campaigns/sinclair-college-primary-low-res-web.png"
-            alt="Sinclair College logo"
-          />
-          <p class="eyebrow">Sinclair Community College</p>
-          <h1>ITEC Lab Tracker</h1>
-          <p class="hero-text">
-            Planning dashboard for labs, equipment, and move decisions.
-          </p>
-        </div>
-        <div class="hero-meta">
-          <img
-            class="sinclair-mark"
-            src="https://www.sinclair.edu/www/assets/Image/marketing-campaigns/sinclair-college-primary-stacked-low-res-web.png"
-            alt="Sinclair College stacked logo"
-          />
-          <div>
-            <span class="meta-label">Project Phase</span>
-            <strong>Initial program planning</strong>
+      <div class="top-context">
+        <section class="hero panel">
+          <div class="hero-copy">
+            <img
+              class="sinclair-logo"
+              src="https://www.sinclair.edu/www/assets/Image/marketing-campaigns/sinclair-college-primary-low-res-web.png"
+              alt="Sinclair College logo"
+            />
+            <h1>ITEC Lab Tracker</h1>
+            <p class="hero-text">
+              Planning dashboard for labs, equipment, and move decisions.
+            </p>
           </div>
-          <div>
-            <span class="meta-label">Source</span>
-            <strong>ITEC Labs planning document</strong>
+          <div class="hero-meta">
+            <div>
+              <span class="meta-label">Project Phase</span>
+              <strong>Initial program planning</strong>
+            </div>
+            <div>
+              <span class="meta-label">Source</span>
+              <strong>ITEC Labs planning document</strong>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="stats-grid">
-        <article class="stat-card panel">
+        <section class="stats-grid">
+        <article class="stat-card panel stat-total" data-status="all" tabindex="0" role="button">
           <span class="stat-label">Total Labs</span>
+          <div class="stat-donut-wrap">
+            <div class="stat-donut" id="statusDonut" aria-hidden="true"></div>
+            <div class="stat-donut-legend" id="statusDonutLegend"></div>
+          </div>
           <strong class="stat-value" id="totalLabs">0</strong>
           <p>Seeded from the current planning notes.</p>
         </article>
-        <article class="stat-card panel">
+        <article class="stat-card panel stat-planned" data-status="planned" tabindex="0" role="button">
           <span class="stat-label">Planned For ITEC</span>
           <strong class="stat-value" id="plannedLabs">0</strong>
           <p>Labs likely intended to be part of the center footprint.</p>
         </article>
-        <article class="stat-card panel">
+        <article class="stat-card panel stat-investigation" data-status="investigation" tabindex="0" role="button">
           <span class="stat-label">Under Investigation</span>
           <strong class="stat-value" id="investigationLabs">0</strong>
           <p>Labs needing a stay-vs-move decision or more detail.</p>
         </article>
-        <article class="stat-card panel">
+        <article class="stat-card panel stat-proposed" data-status="proposed" tabindex="0" role="button">
           <span class="stat-label">New / Proposed Resources</span>
           <strong class="stat-value" id="proposedLabs">0</strong>
           <p>Spaces or resources identified as new build-outs.</p>
         </article>
-      </section>
+        </section>
+      </div>
 
       <section class="workspace">
         <aside class="panel sidebar">
@@ -98,6 +98,13 @@
             <div>
               <p class="eyebrow small">Tracker View</p>
               <h2>Labs and Program Areas</h2>
+            </div>
+            <div class="toolbar-search">
+              <input
+                id="toolbarSearchInput"
+                type="search"
+                placeholder="Search labs, equipment, or space needs..."
+              />
             </div>
             <div class="toolbar-actions">
               <button id="presentationToggleBtn" class="ghost">Presentation Mode</button>
@@ -137,6 +144,15 @@
 
           <section class="detail-section">
             <h3>Equipment</h3>
+            <div class="equipment-readiness" id="equipmentReadiness">
+              <div class="readiness-head">
+                <span class="readiness-label">Equipment Readiness</span>
+                <strong id="equipmentReadinessValue">0%</strong>
+              </div>
+              <div class="readiness-bar">
+                <div id="equipmentReadinessFill" class="readiness-fill"></div>
+              </div>
+            </div>
             <div class="equipment-summary" id="equipmentSummary"></div>
             <p id="equipmentOwnershipSummary" class="equipment-ownership-summary"></p>
             <div id="detailEquipment" class="equipment-list"></div>
