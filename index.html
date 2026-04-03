@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITEC Lab Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero panel">
+        <div class="hero-copy">
+          <img
+            class="sinclair-logo"
+            src="https://www.sinclair.edu/www/assets/Image/marketing-campaigns/sinclair-college-primary-low-res-web.png"
+            alt="Sinclair College logo"
+          />
+          <p class="eyebrow">Sinclair Community College</p>
+          <h1>ITEC Lab Tracker</h1>
+          <p class="hero-text">
+            Planning dashboard for labs, equipment, and move decisions.
+          </p>
+        </div>
+        <div class="hero-meta">
+          <img
+            class="sinclair-mark"
+            src="https://www.sinclair.edu/www/assets/Image/marketing-campaigns/sinclair-college-primary-stacked-low-res-web.png"
+            alt="Sinclair College stacked logo"
+          />
+          <div>
+            <span class="meta-label">Project Phase</span>
+            <strong>Initial program planning</strong>
+          </div>
+          <div>
+            <span class="meta-label">Source</span>
+            <strong>ITEC Labs planning document</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card panel">
+          <span class="stat-label">Total Labs</span>
+          <strong class="stat-value" id="totalLabs">0</strong>
+          <p>Seeded from the current planning notes.</p>
+        </article>
+        <article class="stat-card panel">
+          <span class="stat-label">Planned For ITEC</span>
+          <strong class="stat-value" id="plannedLabs">0</strong>
+          <p>Labs likely intended to be part of the center footprint.</p>
+        </article>
+        <article class="stat-card panel">
+          <span class="stat-label">Under Investigation</span>
+          <strong class="stat-value" id="investigationLabs">0</strong>
+          <p>Labs needing a stay-vs-move decision or more detail.</p>
+        </article>
+        <article class="stat-card panel">
+          <span class="stat-label">New / Proposed Resources</span>
+          <strong class="stat-value" id="proposedLabs">0</strong>
+          <p>Spaces or resources identified as new build-outs.</p>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel sidebar">
+          <div class="sidebar-block">
+            <label for="searchInput">Search labs</label>
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="Robotics, HVAC, data, healthcare..."
+            />
+          </div>
+
+          <div class="sidebar-block">
+            <span class="field-label">Status filter</span>
+            <div class="chip-row" id="statusFilters"></div>
+          </div>
+
+          <div class="sidebar-block">
+            <span class="field-label">Planning notes</span>
+            <ul class="note-list">
+              <li>Statuses are a first pass based on the attached document.</li>
+              <li>Items marked new resource should be treated as build/program targets.</li>
+              <li>We can add owners, buildings, budgets, and move phases next.</li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="panel toolbar">
+            <div>
+              <p class="eyebrow small">Tracker View</p>
+              <h2>Labs and Program Areas</h2>
+            </div>
+            <div class="toolbar-actions">
+              <button id="presentationToggleBtn" class="ghost">Presentation Mode</button>
+              <button id="showAllBtn" class="ghost">Show All</button>
+            </div>
+          </div>
+
+          <div class="card-grid" id="labGrid"></div>
+        </section>
+
+        <aside class="panel detail-panel" id="detailPanel">
+          <div class="detail-topbar">
+            <div>
+              <p class="eyebrow small">Selected Lab</p>
+              <h2 id="detailTitle">Choose a lab</h2>
+            </div>
+            <div class="detail-nav">
+              <button id="prevLabBtn" class="ghost">Previous</button>
+              <button id="nextLabBtn" class="ghost">Next</button>
+            </div>
+          </div>
+          <p id="detailSummary" class="detail-summary">
+            Select a card to review its status, equipment list, and space requirements.
+          </p>
+
+          <div class="detail-meta">
+            <div>
+              <span class="meta-label">Status</span>
+              <select id="detailStatusSelect" class="detail-select" aria-label="Lab status"></select>
+              <strong id="detailStatusValue" class="detail-status-value">-</strong>
+            </div>
+            <div>
+              <span class="meta-label">Move Outlook</span>
+              <strong id="detailOutlook">-</strong>
+            </div>
+          </div>
+
+          <section class="detail-section">
+            <h3>Equipment</h3>
+            <div class="equipment-summary" id="equipmentSummary"></div>
+            <p id="equipmentOwnershipSummary" class="equipment-ownership-summary"></p>
+            <div id="detailEquipment" class="equipment-list"></div>
+          </section>
+
+          <section class="detail-section">
+            <h3>Space Considerations</h3>
+            <ul id="detailSpace" class="detail-list"></ul>
+          </section>
+
+          <section class="detail-section">
+            <h3>Planning Notes</h3>
+            <ul id="detailNotes" class="detail-list"></ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
