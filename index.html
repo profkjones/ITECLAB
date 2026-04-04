@@ -39,7 +39,9 @@
           </div>
         </section>
 
-        <section class="stats-grid">
+      </div>
+
+      <section class="stats-grid">
         <article class="stat-card panel stat-total" data-status="all" tabindex="0" role="button">
           <span class="stat-label">Total Labs</span>
           <div class="stat-donut-wrap">
@@ -64,8 +66,7 @@
           <strong class="stat-value" id="proposedLabs">0</strong>
           <p>Spaces or resources identified as new build-outs.</p>
         </article>
-        </section>
-      </div>
+      </section>
 
       <section class="workspace">
         <aside class="panel sidebar">
@@ -125,6 +126,10 @@
               <button id="prevLabBtn" class="ghost">Previous</button>
               <button id="nextLabBtn" class="ghost">Next</button>
             </div>
+          </div>
+          <div class="detail-export-row">
+            <button id="exportPdfBtn" class="ghost" type="button">Export to PDF</button>
+            <button id="exportExcelBtn" class="ghost" type="button">Export to Excel</button>
           </div>
           <p id="detailSummary" class="detail-summary">
             Select a card to review its status, equipment list, and space requirements.

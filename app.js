@@ -425,6 +425,8 @@ const presentationToggleBtn = document.getElementById("presentationToggleBtn");
 const prevLabBtn = document.getElementById("prevLabBtn");
 const nextLabBtn = document.getElementById("nextLabBtn");
 const enterWorkingModeBtn = document.getElementById("enterWorkingModeBtn");
+const exportPdfBtn = document.getElementById("exportPdfBtn");
+const exportExcelBtn = document.getElementById("exportExcelBtn");
 const statCards = Array.from(document.querySelectorAll(".stat-card[data-status]"));
 
 const detailTitle = document.getElementById("detailTitle");
@@ -507,6 +509,10 @@ function animateDetailPanel() {
   detailPanel.classList.add("is-transitioning");
 }
 
+function selectedLab() {
+  return labs.find((lab) => lab.id === state.selectedId) || null;
+}
+
 function updateTopContextState() {
   document.body.classList.toggle("top-condensed", window.scrollY > 120);
 }
@@ -521,6 +527,134 @@ function persistPresentationMode() {
 
 function countByStatus(status) {
   return labs.filter((lab) => lab.status === status).length;
+}
+
+function slugify(text) {
+  return (text || "lab")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function currentLabCsv(lab) {
+  const rows = [["Section", "Item", "Status", "Source"]];
+
+  rows.push(["Lab", lab.name, statusConfig[lab.status].label, lab.outlook]);
+  lab.equipment.forEach((item) => {
+    rows.push(["Equipment", item.name, ownershipConfig[item.ownership], ownershipSourceConfig[item.ownership]]);
+  });
+  lab.space.forEach((item) => {
+    rows.push(["Space Consideration", item, "", ""]);
+  });
+  lab.notes.forEach((item) => {
+    rows.push(["Planning Note", item, "", ""]);
+  });
+
+  return `${rows
+    .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+    .join("\n")}\n`;
+}
+
+function exportCurrentLabCsv() {
+  const lab = selectedLab();
+  if (!lab) return;
+  downloadFile(`${slugify(lab.name)}.csv`, currentLabCsv(lab), "text/csv;charset=utf-8");
+}
+
+function exportCurrentLabPdf() {
+  const lab = selectedLab();
+  if (!lab) return;
+
+  const win = window.open("", "_blank", "width=1100,height=900");
+  if (!win) return;
+
+  const equipmentRows = lab.equipment
+    .map(
+      (item) => `
+        <tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(ownershipConfig[item.ownership])}</td>
+          <td>${escapeHtml(ownershipSourceConfig[item.ownership])}</td>
+        </tr>`,
+    )
+    .join("");
+
+  const spaceItems = lab.space.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const noteItems = lab.notes.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const html = `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>${escapeHtml(lab.name)}</title>
+    <style>
+      body { font-family: Arial, sans-serif; color: #172124; margin: 32px; line-height: 1.45; }
+      h1, h2 { margin: 0 0 12px; }
+      p { margin: 0; }
+      .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+      .meta div { padding: 12px; border: 1px solid #d9d9d9; border-radius: 10px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { border-bottom: 1px solid #ddd; text-align: left; padding: 10px 8px; vertical-align: top; }
+      th { background: #f5f7f8; }
+      section { margin-top: 24px; }
+      ul { margin: 8px 0 0; padding-left: 20px; }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(lab.name)}</h1>
+    <p>${escapeHtml(lab.summary)}</p>
+    <div class="meta">
+      <div><strong>Status</strong><br />${escapeHtml(statusConfig[lab.status].label)}</div>
+      <div><strong>Move Outlook</strong><br />${escapeHtml(lab.outlook)}</div>
+    </div>
+    <section>
+      <h2>Equipment</h2>
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Status</th><th>Source</th></tr>
+        </thead>
+        <tbody>${equipmentRows}</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Space Considerations</h2>
+      <ul>${spaceItems}</ul>
+    </section>
+    <section>
+      <h2>Planning Notes</h2>
+      <ul>${noteItems}</ul>
+    </section>
+  </body>
+</html>`;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => {
+    win.focus();
+    win.print();
+  };
 }
 
 function updateStats() {
@@ -631,7 +765,11 @@ function renderLabGrid() {
           <div class="lab-visual ${visual.className}" aria-hidden="true">${visual.emoji}</div>
           <div class="lab-title-wrap">
             <div class="lab-title">${lab.shortName || lab.name}</div>
-            <div class="lab-readiness-dots" aria-hidden="true">
+            <div
+              class="lab-readiness-dots"
+              aria-label="Equipment status: ${counts.owned} owned, ${counts.purchase} needing purchase, ${counts.investigate} needing confirmation"
+              title="Owned: ${counts.owned} | Needs purchase: ${counts.purchase} | Need to confirm: ${counts.investigate}"
+            >
               <span class="readiness-dot owned" title="Already owned: ${counts.owned}"></span>
               <span class="readiness-dot purchase" title="Needs purchase: ${counts.purchase}"></span>
               <span class="readiness-dot investigate" title="Need to confirm: ${counts.investigate}"></span>
@@ -913,6 +1051,9 @@ prevLabBtn.addEventListener("click", () => {
 nextLabBtn.addEventListener("click", () => {
   moveSelection(1);
 });
+
+exportPdfBtn.addEventListener("click", exportCurrentLabPdf);
+exportExcelBtn.addEventListener("click", exportCurrentLabCsv);
 
 statCards.forEach((card) => {
   const applyFilter = () => {

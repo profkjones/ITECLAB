@@ -40,7 +40,7 @@ body {
   top: 0;
   z-index: 20;
   padding-top: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   background: linear-gradient(180deg, rgba(247, 243, 235, 0.96), rgba(247, 243, 235, 0.84), transparent);
   backdrop-filter: blur(10px);
   transition: padding 180ms ease, margin 180ms ease, transform 180ms ease;
@@ -235,8 +235,7 @@ body.top-condensed h1 {
   font-size: clamp(1rem, 1.6vw, 1.45rem);
 }
 
-body.top-condensed .hero-text,
-body.top-condensed .stat-card p {
+body.top-condensed .hero-text {
   opacity: 0;
   max-height: 0;
   margin: 0;
@@ -246,40 +245,6 @@ body.top-condensed .stat-card p {
 body.top-condensed .hero-meta {
   gap: 6px;
   padding: 8px 10px;
-}
-
-body.top-condensed .stats-grid {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  margin: 0;
-  gap: 0;
-}
-
-body.top-condensed .stat-card {
-  padding: 0;
-  min-height: 0;
-  border-width: 0;
-  box-shadow: none;
-}
-
-body.top-condensed .stat-donut-wrap {
-  margin-top: 0;
-}
-
-body.top-condensed .stat-donut {
-  width: 46px;
-  height: 46px;
-}
-
-body.top-condensed .stat-donut::after {
-  inset: 10px;
-}
-
-body.top-condensed .stat-value {
-  margin: 0;
-  font-size: 0;
 }
 
 .stat-donut-wrap {
@@ -321,9 +286,10 @@ body.top-condensed .stat-value {
 .legend-dot,
 .readiness-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
+  border: 1px solid rgba(24, 33, 39, 0.12);
 }
 
 .legend-dot.planned,
@@ -338,7 +304,7 @@ body.top-condensed .stat-value {
 
 .legend-dot.proposed,
 .readiness-dot.investigate {
-  background: #3f7db0;
+  background: #a8afb7;
 }
 
 .workspace {
@@ -823,6 +789,7 @@ body.presentation-mode .lab-title-wrap {
 body.presentation-mode .lab-readiness-dots {
   display: inline-flex;
   gap: 6px;
+  align-items: center;
 }
 
 body.presentation-mode .status-pill {
@@ -1083,6 +1050,13 @@ button.ghost {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+
+.detail-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .detail-topbar {
