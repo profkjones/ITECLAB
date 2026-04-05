@@ -234,7 +234,7 @@ const defaultLabs = [
   {
     id: "soc",
     name: "Security Operations Center",
-    shortName: "Security Ops",
+    shortName: "SOC",
     status: "planned",
     visual: "security",
     outlook: "Likely center showcase and teaching environment",
@@ -420,6 +420,7 @@ const searchInput = document.getElementById("searchInput");
 const toolbarSearchInput = document.getElementById("toolbarSearchInput");
 const statusFilters = document.getElementById("statusFilters");
 const labGrid = document.getElementById("labGrid");
+const clearSearchBtn = document.getElementById("clearSearchBtn");
 const showAllBtn = document.getElementById("showAllBtn");
 const presentationToggleBtn = document.getElementById("presentationToggleBtn");
 const prevLabBtn = document.getElementById("prevLabBtn");
@@ -431,6 +432,7 @@ const statCards = Array.from(document.querySelectorAll(".stat-card[data-status]"
 
 const detailTitle = document.getElementById("detailTitle");
 const detailSummary = document.getElementById("detailSummary");
+const detailQuickStats = document.getElementById("detailQuickStats");
 const detailStatusSelect = document.getElementById("detailStatusSelect");
 const detailStatusValue = document.getElementById("detailStatusValue");
 const detailPanel = document.getElementById("detailPanel");
@@ -442,6 +444,21 @@ const equipmentReadinessValue = document.getElementById("equipmentReadinessValue
 const equipmentReadinessFill = document.getElementById("equipmentReadinessFill");
 const detailSpace = document.getElementById("detailSpace");
 const detailNotes = document.getElementById("detailNotes");
+const workingModeSummary = document.getElementById("workingModeSummary");
+const workingModeStrip = document.getElementById("workingModeStrip");
+const selectedLabNameInput = document.getElementById("selectedLabNameInput");
+const saveLabNameBtn = document.getElementById("saveLabNameBtn");
+const newEquipmentInput = document.getElementById("newEquipmentInput");
+const addEquipmentBtn = document.getElementById("addEquipmentBtn");
+const newLabNameInput = document.getElementById("newLabNameInput");
+const newLabStatusSelect = document.getElementById("newLabStatusSelect");
+const addLabBtn = document.getElementById("addLabBtn");
+const editorFeedback = document.getElementById("editorFeedback");
+const sqftFlatInput = document.getElementById("sqftFlatInput");
+const saveSqftBtn = document.getElementById("saveSqftBtn");
+const sqftResult = document.getElementById("sqftResult");
+const totalSquareFootageValue = document.getElementById("totalSquareFootageValue");
+const totalSquareFootageNote = document.getElementById("totalSquareFootageNote");
 
 const ownershipConfig = {
   owned: "Already Owned",
@@ -486,6 +503,10 @@ function loadLabs() {
       merged.equipment = (merged.equipment || []).map((item) =>
         typeof item === "string" ? { name: item, ownership: "investigate" } : item,
       );
+      merged.squareFeet = Number.isFinite(Number(merged.squareFeet)) ? Number(merged.squareFeet) : 0;
+      if (merged.id === "soc" && (!override?.shortName || override.shortName === "Security Ops")) {
+        merged.shortName = "SOC";
+      }
       return merged;
     });
   } catch {
@@ -534,6 +555,43 @@ function slugify(text) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function setEditorFeedback(message) {
+  editorFeedback.textContent = message;
+}
+
+function uniqueLabId(name) {
+  const base = slugify(name) || "lab";
+  let nextId = base;
+  let index = 2;
+
+  while (labs.some((lab) => lab.id === nextId)) {
+    nextId = `${base}-${index}`;
+    index += 1;
+  }
+
+  return nextId;
+}
+
+function parseSquareFootageInput() {
+  const area = Number(sqftFlatInput.value);
+
+  if (!area || area <= 0) {
+    sqftResult.textContent = "Enter a positive square footage value.";
+    return;
+  }
+
+  sqftResult.textContent = `${area.toLocaleString()} square feet ready to save`;
+  return area;
+}
+
+function totalSquareFootage() {
+  return labs.reduce((sum, lab) => sum + (Number(lab.squareFeet) || 0), 0);
+}
+
+function labsWithSquareFootageCount() {
+  return labs.filter((lab) => (Number(lab.squareFeet) || 0) > 0).length;
 }
 
 function downloadFile(filename, content, type) {
@@ -734,6 +792,53 @@ function renderStatusFilterState() {
   });
 }
 
+function clearSearch() {
+  state.search = "";
+  searchInput.value = "";
+  toolbarSearchInput.value = "";
+}
+
+function renderWorkingModeSummary() {
+  const visibleLabs = filteredLabs();
+  const selected = selectedLab();
+  const filterLabel = statusConfig[state.status]?.label ?? "All Labs";
+  const searchLabel = state.search.trim() ? `Search: "${state.search.trim()}"` : "No search";
+
+  workingModeSummary.textContent = state.presentationMode
+    ? "Presentation mode keeps the layout compact for walkthroughs and reviews."
+    : "Working mode is set up for filtering, status updates, and equipment planning.";
+
+  workingModeStrip.innerHTML = `
+    <span class="mode-pill strong">${visibleLabs.length} visible</span>
+    <span class="mode-pill">${filterLabel}</span>
+    <span class="mode-pill">${searchLabel}</span>
+    <span class="mode-pill">${selected ? `Selected: ${selected.shortName || selected.name}` : "No lab selected"}</span>
+  `;
+
+  const totalSqFt = totalSquareFootage();
+  const countedLabs = labsWithSquareFootageCount();
+  totalSquareFootageValue.textContent = `${totalSqFt.toLocaleString()} sq ft`;
+  totalSquareFootageNote.textContent = countedLabs
+    ? `${countedLabs} lab${countedLabs === 1 ? "" : "s"} currently included in the total.`
+    : "Save square footage to each lab in Working Mode to build the total.";
+}
+
+function renderReadinessDots(items) {
+  const counts = equipmentCounts(items);
+
+  if (!items.length) {
+    return `<span class="readiness-dot empty" title="No equipment listed yet"></span>`;
+  }
+
+  return ["owned", "purchase", "investigate"]
+    .filter((key) => counts[key] > 0)
+    .map((key) => {
+      const label = ownershipConfig[key] || "Need To Confirm";
+      return `<span class="readiness-dot ${key}" title="${label}: ${counts[key]} item${counts[key] === 1 ? "" : "s"}"></span>`;
+    })
+    .join("");
+}
+
 function renderLabGrid() {
   const visibleLabs = filteredLabs();
   labGrid.innerHTML = "";
@@ -770,9 +875,7 @@ function renderLabGrid() {
               aria-label="Equipment status: ${counts.owned} owned, ${counts.purchase} needing purchase, ${counts.investigate} needing confirmation"
               title="Owned: ${counts.owned} | Needs purchase: ${counts.purchase} | Need to confirm: ${counts.investigate}"
             >
-              <span class="readiness-dot owned" title="Already owned: ${counts.owned}"></span>
-              <span class="readiness-dot purchase" title="Needs purchase: ${counts.purchase}"></span>
-              <span class="readiness-dot investigate" title="Need to confirm: ${counts.investigate}"></span>
+              ${renderReadinessDots(lab.equipment)}
             </div>
           </div>
         </div>
@@ -936,7 +1039,7 @@ function renderEquipment(selectedLab) {
     select.addEventListener("change", (event) => {
       selectedLab.equipment[index].ownership = event.target.value;
       persistLabs();
-      renderEquipment(selectedLab);
+      render();
     });
 
     row.append(name, select);
@@ -951,6 +1054,7 @@ function renderDetailPanel() {
   if (!selectedLab) {
     detailTitle.textContent = "Choose a lab";
     detailSummary.textContent = "Select a card to review its status, equipment list, and space requirements.";
+    detailQuickStats.innerHTML = "";
     detailStatusSelect.disabled = true;
     detailStatusSelect.innerHTML = `<option value="">No lab selected</option>`;
     detailStatusValue.textContent = "-";
@@ -963,6 +1067,14 @@ function renderDetailPanel() {
     equipmentReadinessFill.style.width = "0%";
     detailSpace.innerHTML = "";
     detailNotes.innerHTML = "";
+    selectedLabNameInput.value = "";
+    selectedLabNameInput.disabled = true;
+    newEquipmentInput.value = "";
+    newEquipmentInput.disabled = true;
+    saveLabNameBtn.disabled = true;
+    addEquipmentBtn.disabled = true;
+    saveSqftBtn.disabled = true;
+    sqftFlatInput.value = "";
     prevLabBtn.disabled = true;
     nextLabBtn.disabled = true;
     return;
@@ -972,6 +1084,13 @@ function renderDetailPanel() {
   detailSummary.textContent = state.presentationMode
     ? `${selectedLab.summary} ${selectedLab.outlook}.`
     : selectedLab.summary;
+  detailQuickStats.innerHTML = `
+    <span class="quickstat-pill status-${selectedLab.status}">${statusConfig[selectedLab.status].label}</span>
+    <span class="quickstat-pill">${selectedLab.equipment.length} equipment items</span>
+    <span class="quickstat-pill">${selectedLab.space.length} space needs</span>
+    <span class="quickstat-pill">${selectedLab.notes.length} planning notes</span>
+    <span class="quickstat-pill">${(selectedLab.squareFeet || 0).toLocaleString()} sq ft</span>
+  `;
   detailStatusSelect.disabled = false;
   detailStatusSelect.innerHTML = Object.entries(statusConfig)
     .filter(([key]) => key !== "all")
@@ -986,6 +1105,16 @@ function renderDetailPanel() {
   renderEquipment(selectedLab);
   renderSpace(selectedLab.space);
   fillList(detailNotes, selectedLab.notes);
+  selectedLabNameInput.disabled = false;
+  newEquipmentInput.disabled = false;
+  saveLabNameBtn.disabled = false;
+  addEquipmentBtn.disabled = false;
+  saveSqftBtn.disabled = false;
+  selectedLabNameInput.value = selectedLab.name;
+  sqftFlatInput.value = selectedLab.squareFeet || "";
+  sqftResult.textContent = selectedLab.squareFeet
+    ? `Saved for ${selectedLab.shortName || selectedLab.name}: ${selectedLab.squareFeet.toLocaleString()} square feet`
+    : "Enter a square footage value for the selected lab.";
   prevLabBtn.disabled = visibleLabs.length <= 1;
   nextLabBtn.disabled = visibleLabs.length <= 1;
 }
@@ -995,6 +1124,7 @@ function render() {
   document.body.classList.toggle("presentation-mode", state.presentationMode);
   presentationToggleBtn.textContent = state.presentationMode ? "Working Mode" : "Presentation Mode";
   renderStatusFilterState();
+  renderWorkingModeSummary();
   renderLabGrid();
   renderDetailPanel();
   if (selectedChanged && state.lastRenderedSelectedId !== null) {
@@ -1026,10 +1156,105 @@ detailStatusSelect.addEventListener("change", (event) => {
 });
 
 showAllBtn.addEventListener("click", () => {
-  state.search = "";
+  clearSearch();
   state.status = "all";
-  searchInput.value = "";
   render();
+});
+
+clearSearchBtn.addEventListener("click", () => {
+  clearSearch();
+  render();
+});
+
+saveLabNameBtn.addEventListener("click", () => {
+  const lab = labs.find((item) => item.id === state.selectedId);
+  const nextName = selectedLabNameInput.value.trim();
+
+  if (!lab || !nextName) {
+    setEditorFeedback("Choose a lab and enter a name before saving.");
+    return;
+  }
+
+  lab.name = nextName;
+  lab.shortName = nextName.length > 24 ? nextName.slice(0, 24).trim() : nextName;
+  persistLabs();
+  setEditorFeedback(`Updated lab name to ${nextName}.`);
+  render();
+});
+
+addEquipmentBtn.addEventListener("click", () => {
+  const lab = labs.find((item) => item.id === state.selectedId);
+  const equipmentName = newEquipmentInput.value.trim();
+
+  if (!lab || !equipmentName) {
+    setEditorFeedback("Choose a lab and enter equipment before adding it.");
+    return;
+  }
+
+  lab.equipment.push({ name: equipmentName, ownership: "investigate" });
+  newEquipmentInput.value = "";
+  persistLabs();
+  setEditorFeedback(`Added equipment to ${lab.shortName || lab.name}.`);
+  render();
+});
+
+addLabBtn.addEventListener("click", () => {
+  const name = newLabNameInput.value.trim();
+  const status = newLabStatusSelect.value;
+
+  if (!name) {
+    setEditorFeedback("Enter a name for the new lab first.");
+    return;
+  }
+
+  const newLab = {
+    id: uniqueLabId(name),
+    name,
+    shortName: name.length > 24 ? name.slice(0, 24).trim() : name,
+    status,
+    visual: "data",
+    outlook: status === "planned"
+      ? "Planned for ITEC"
+      : status === "investigation"
+        ? "Needs planning review"
+        : "New resource proposed for ITEC",
+    summary: "New lab entry added during working mode planning.",
+    squareFeet: 0,
+    equipment: [],
+    space: [],
+    notes: ["Added in working mode. Update summary, space needs, and planning notes as decisions become clearer."],
+  };
+
+  labs.push(newLab);
+  state.selectedId = newLab.id;
+  newLabNameInput.value = "";
+  persistLabs();
+  updateStats();
+  setEditorFeedback(`Added ${name} and selected it for editing.`);
+  render();
+});
+
+saveSqftBtn.addEventListener("click", () => {
+  const lab = labs.find((item) => item.id === state.selectedId);
+  const area = parseSquareFootageInput();
+
+  if (!lab || !area) {
+    setEditorFeedback("Choose a lab and enter a valid square footage number before saving.");
+    return;
+  }
+
+  lab.squareFeet = area;
+  persistLabs();
+  updateStats();
+  setEditorFeedback(`Saved ${area.toLocaleString()} square feet for ${lab.shortName || lab.name}.`);
+  render();
+});
+
+sqftFlatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    saveSqftBtn.click();
+  }
 });
 
 presentationToggleBtn.addEventListener("click", () => {

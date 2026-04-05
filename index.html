@@ -96,9 +96,12 @@
 
         <section class="content">
           <div class="panel toolbar">
-            <div>
+            <div class="toolbar-copy">
               <p class="eyebrow small">Tracker View</p>
               <h2>Labs and Program Areas</h2>
+              <p class="toolbar-supporting" id="workingModeSummary">
+                Choose a lab to update statuses, equipment readiness, and planning notes.
+              </p>
             </div>
             <div class="toolbar-search">
               <input
@@ -108,8 +111,17 @@
               />
             </div>
             <div class="toolbar-actions">
+              <button id="clearSearchBtn" class="ghost" type="button">Clear Search</button>
               <button id="presentationToggleBtn" class="ghost">Presentation Mode</button>
               <button id="showAllBtn" class="ghost">Show All</button>
+            </div>
+            <div class="working-mode-strip" id="workingModeStrip" aria-live="polite"></div>
+            <div class="working-mode-total panel" id="workingModeTotal">
+              <span class="working-mode-total-label">Total Square Footage</span>
+              <strong class="working-mode-total-value" id="totalSquareFootageValue">0 sq ft</strong>
+              <p class="working-mode-total-note" id="totalSquareFootageNote">
+                Save square footage to each lab in Working Mode to build the total.
+              </p>
             </div>
           </div>
 
@@ -134,6 +146,8 @@
           <p id="detailSummary" class="detail-summary">
             Select a card to review its status, equipment list, and space requirements.
           </p>
+
+          <div class="detail-quickstats" id="detailQuickStats" aria-live="polite"></div>
 
           <div class="detail-meta">
             <div>
@@ -171,6 +185,58 @@
           <section class="detail-section">
             <h3>Planning Notes</h3>
             <ul id="detailNotes" class="detail-list"></ul>
+          </section>
+
+          <section class="detail-section working-editor-section">
+            <h3>Working Mode Editor</h3>
+            <p class="editor-help">
+              Add a new lab, rename the selected lab, or add equipment items while planning.
+            </p>
+
+            <div class="editor-card">
+              <label for="selectedLabNameInput">Selected lab name</label>
+              <div class="editor-inline">
+                <input id="selectedLabNameInput" type="text" placeholder="Update selected lab name" />
+                <button id="saveLabNameBtn" class="ghost" type="button">Save Name</button>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <label for="newEquipmentInput">Add equipment to selected lab</label>
+              <div class="editor-inline">
+                <input id="newEquipmentInput" type="text" placeholder="Example: Training server rack" />
+                <button id="addEquipmentBtn" class="ghost" type="button">Add Equipment</button>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <label for="newLabNameInput">Create a new lab</label>
+              <div class="editor-grid">
+                <input id="newLabNameInput" type="text" placeholder="Example: Advanced Manufacturing Lab" />
+                <select id="newLabStatusSelect" class="detail-select" aria-label="New lab status">
+                  <option value="planned">Planned For ITEC</option>
+                  <option value="investigation">Under Investigation</option>
+                  <option value="proposed">New / Proposed</option>
+                </select>
+                <button id="addLabBtn" class="primary-action" type="button">Add Lab</button>
+              </div>
+            </div>
+
+            <div class="editor-card sqft-editor-card">
+              <label for="sqftFlatInput">Square Footage</label>
+              <p class="editor-help">
+                Save a single square footage number for the selected lab while the building layout is still being planned.
+              </p>
+              <div class="sqft-grid single">
+                <input id="sqftFlatInput" type="number" min="0" step="1" placeholder="Example: 1400" />
+              </div>
+              <div class="sqft-actions">
+                <button id="saveSqftBtn" class="primary-action" type="button">Save To Selected Lab</button>
+              </div>
+              <div class="sqft-result" id="sqftResult" aria-live="polite">Enter a square footage value for the selected lab.</div>
+            </div>
+
+            <p id="editorFeedback" class="editor-feedback" aria-live="polite"></p>
           </section>
 
           <div class="presentation-footer-action">
