@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Aldrich&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -115,9 +115,16 @@
                 placeholder="Search labs, equipment, or space needs..."
               />
             </div>
+            <div class="kj-countdown panel" id="kjCountdown" aria-live="polite">
+              <span class="kj-label">Countdown</span>
+              <strong id="kjCountdownValue" class="kj-countdown-value">0d 00h 00m 00s</strong>
+              <span class="kj-countdown-target">to Jan 1, 2028</span>
+            </div>
             <div class="toolbar-actions">
               <button id="clearSearchBtn" class="ghost" type="button">Clear Search</button>
               <button id="presentationToggleBtn" class="ghost">Presentation Mode</button>
+              <button id="topWorkingModeBtn" class="ghost" type="button">Working Mode</button>
+              <button id="kjModeBtn" class="ghost kj-toggle" type="button" aria-label="Toggle KJ presentation skin">KJ</button>
               <button id="showAllBtn" class="ghost">Show All</button>
             </div>
             <div class="working-mode-strip" id="workingModeStrip" aria-live="polite"></div>
@@ -125,6 +132,86 @@
               <span class="working-mode-total-label">Leadership Snapshot</span>
               <div class="leadership-strip" id="leadershipStrip" aria-live="polite"></div>
             </div>
+          </div>
+
+          <section class="kj-hud" id="kjHud" aria-live="polite">
+            <div class="panel kj-command-panel">
+              <div class="kj-command-emblem left" aria-hidden="true">
+                <span class="kj-emblem-ring"></span>
+                <span class="kj-emblem-core"></span>
+              </div>
+              <div class="kj-command-copy">
+                <p class="kj-label">ITEC Command Deck</p>
+                <h2>Mission Control Interface</h2>
+                <p class="kj-command-text">
+                  Live command view for center planning, lab readiness, space allocation, and operational signals.
+                </p>
+              </div>
+              <div class="kj-command-emblem right" aria-hidden="true">
+                <span class="kj-emblem-ring"></span>
+                <span class="kj-emblem-core"></span>
+              </div>
+            </div>
+
+            <div class="kj-metric-grid">
+              <article class="panel kj-metric-card">
+                <span class="kj-label">Total Labs</span>
+                <strong id="kjTotalLabs" class="kj-metric-value">0</strong>
+              </article>
+              <article class="panel kj-metric-card">
+                <span class="kj-label">Equipment Items</span>
+                <strong id="kjTotalEquipment" class="kj-metric-value">0</strong>
+              </article>
+              <article class="panel kj-metric-card">
+                <span class="kj-label">Square Footage</span>
+                <strong id="kjTotalSquareFootage" class="kj-metric-value">0 sq ft</strong>
+              </article>
+              <article class="panel kj-metric-card">
+                <span class="kj-label">Need Review</span>
+                <strong id="kjNeedsReview" class="kj-metric-value">0</strong>
+              </article>
+            </div>
+
+            <div class="kj-analytics-grid">
+              <article class="panel kj-chart-panel">
+                <div class="kj-chart-header">
+                  <span class="kj-label">Lab Status Grid</span>
+                  <strong id="kjStatusSummary">0 planned / 0 investigation / 0 proposed</strong>
+                </div>
+                <div class="kj-status-bars" id="kjStatusBars"></div>
+              </article>
+
+              <article class="panel kj-chart-panel">
+                <div class="kj-chart-header">
+                  <span class="kj-label">Equipment Signals</span>
+                  <strong id="kjEquipmentSummary">0 owned / 0 purchase / 0 confirm</strong>
+                </div>
+                <div class="kj-equipment-bars" id="kjEquipmentBars"></div>
+              </article>
+
+              <article class="panel kj-chart-panel">
+                <div class="kj-chart-header">
+                  <span class="kj-label">Phase Deployment</span>
+                  <strong id="kjPhaseSummary">0 phase 1 / 0 phase 2 / 0 future</strong>
+                </div>
+                <div class="kj-phase-bars" id="kjPhaseBars"></div>
+              </article>
+
+              <article class="panel kj-chart-panel">
+                <div class="kj-chart-header">
+                  <span class="kj-label">Leadership Coverage</span>
+                  <strong id="kjOwnerSummary">0 assigned / 0 open</strong>
+                </div>
+                <div class="kj-owner-bars" id="kjOwnerBars"></div>
+              </article>
+            </div>
+
+            <div class="panel kj-telemetry-bar" id="kjTelemetryBar"></div>
+          </section>
+
+          <div class="panel kj-deck-label" id="kjDeckLabel">
+            <span class="kj-label">Heads-Up Display</span>
+            <strong>Live Lab Queue And Focused Briefing</strong>
           </div>
 
           <div class="card-grid" id="labGrid"></div>
@@ -150,6 +237,7 @@
           </p>
 
           <div class="detail-quickstats" id="detailQuickStats" aria-live="polite"></div>
+          <div class="kj-planning-hud" id="kjPlanningHud" aria-live="polite"></div>
 
           <div class="detail-meta">
             <div>

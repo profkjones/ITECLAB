@@ -1,5 +1,6 @@
 const storageKey = "itec-lab-tracker-state-v1";
 const presentationKey = "itec-lab-tracker-presentation-mode-v1";
+const futureSkinKey = "itec-lab-tracker-future-skin-v1";
 
 const defaultLabs = [
   {
@@ -423,6 +424,8 @@ const labGrid = document.getElementById("labGrid");
 const clearSearchBtn = document.getElementById("clearSearchBtn");
 const showAllBtn = document.getElementById("showAllBtn");
 const presentationToggleBtn = document.getElementById("presentationToggleBtn");
+const topWorkingModeBtn = document.getElementById("topWorkingModeBtn");
+const kjModeBtn = document.getElementById("kjModeBtn");
 const prevLabBtn = document.getElementById("prevLabBtn");
 const nextLabBtn = document.getElementById("nextLabBtn");
 const enterWorkingModeBtn = document.getElementById("enterWorkingModeBtn");
@@ -433,6 +436,7 @@ const statCards = Array.from(document.querySelectorAll(".stat-card[data-status]"
 const detailTitle = document.getElementById("detailTitle");
 const detailSummary = document.getElementById("detailSummary");
 const detailQuickStats = document.getElementById("detailQuickStats");
+const kjPlanningHud = document.getElementById("kjPlanningHud");
 const detailStatusSelect = document.getElementById("detailStatusSelect");
 const detailStatusValue = document.getElementById("detailStatusValue");
 const detailPanel = document.getElementById("detailPanel");
@@ -446,6 +450,21 @@ const detailSpace = document.getElementById("detailSpace");
 const detailNotes = document.getElementById("detailNotes");
 const workingModeSummary = document.getElementById("workingModeSummary");
 const workingModeStrip = document.getElementById("workingModeStrip");
+const kjHud = document.getElementById("kjHud");
+const kjCountdownValue = document.getElementById("kjCountdownValue");
+const kjTotalLabs = document.getElementById("kjTotalLabs");
+const kjTotalEquipment = document.getElementById("kjTotalEquipment");
+const kjTotalSquareFootage = document.getElementById("kjTotalSquareFootage");
+const kjNeedsReview = document.getElementById("kjNeedsReview");
+const kjStatusSummary = document.getElementById("kjStatusSummary");
+const kjStatusBars = document.getElementById("kjStatusBars");
+const kjEquipmentSummary = document.getElementById("kjEquipmentSummary");
+const kjEquipmentBars = document.getElementById("kjEquipmentBars");
+const kjPhaseSummary = document.getElementById("kjPhaseSummary");
+const kjPhaseBars = document.getElementById("kjPhaseBars");
+const kjOwnerSummary = document.getElementById("kjOwnerSummary");
+const kjOwnerBars = document.getElementById("kjOwnerBars");
+const kjTelemetryBar = document.getElementById("kjTelemetryBar");
 const selectedLabNameInput = document.getElementById("selectedLabNameInput");
 const saveLabNameBtn = document.getElementById("saveLabNameBtn");
 const newEquipmentInput = document.getElementById("newEquipmentInput");
@@ -535,8 +554,11 @@ const state = {
   status: "all",
   selectedId: labs[0]?.id ?? null,
   presentationMode: window.localStorage.getItem(presentationKey) !== "false",
+  futureSkin: window.localStorage.getItem(futureSkinKey) === "true",
   lastRenderedSelectedId: null,
 };
+
+let countdownIntervalId = null;
 
 function animateDetailPanel() {
   detailPanel.classList.remove("is-transitioning");
@@ -558,6 +580,10 @@ function persistLabs() {
 
 function persistPresentationMode() {
   window.localStorage.setItem(presentationKey, String(state.presentationMode));
+}
+
+function persistFutureSkin() {
+  window.localStorage.setItem(futureSkinKey, String(state.futureSkin));
 }
 
 function countByStatus(status) {
@@ -608,6 +634,50 @@ function labsWithSquareFootageCount() {
   return labs.filter((lab) => (Number(lab.squareFeet) || 0) > 0).length;
 }
 
+function totalEquipmentCount() {
+  return labs.reduce((sum, lab) => sum + lab.equipment.length, 0);
+}
+
+function totalOwnershipCounts() {
+  return labs.reduce(
+    (totals, lab) => {
+      const counts = equipmentCounts(lab.equipment);
+      totals.owned += counts.owned;
+      totals.purchase += counts.purchase;
+      totals.investigate += counts.investigate;
+      return totals;
+    },
+    { owned: 0, purchase: 0, investigate: 0 },
+  );
+}
+
+function labsNeedingReviewCount() {
+  return labs.filter((lab) => {
+    const counts = equipmentCounts(lab.equipment);
+    return lab.status === "investigation" || counts.investigate > 0;
+  }).length;
+}
+
+function phaseCounts() {
+  return labs.reduce(
+    (totals, lab) => {
+      totals[lab.phase] = (totals[lab.phase] || 0) + 1;
+      return totals;
+    },
+    { "phase-1": 0, "phase-2": 0, future: 0 },
+  );
+}
+
+function ownerCoverage() {
+  const assigned = labs.filter((lab) => lab.ownerLead.trim()).length;
+  const open = labs.length - assigned;
+  const uniqueOwners = new Set(
+    labs.map((lab) => lab.ownerLead.trim()).filter(Boolean),
+  ).size;
+
+  return { assigned, open, uniqueOwners };
+}
+
 function phaseLabel(value) {
   return (
     {
@@ -640,6 +710,133 @@ function renderLeadershipSummary() {
     <span class="mode-pill">${missingOwner} without owner</span>
     <span class="mode-pill">${missingNextStep} without next step</span>
   `;
+}
+
+function renderKjHud() {
+  const selected = selectedLab();
+  const planned = countByStatus("planned");
+  const investigation = countByStatus("investigation");
+  const proposed = countByStatus("proposed");
+  const totalEquipment = totalEquipmentCount();
+  const ownership = totalOwnershipCounts();
+  const totalSqFt = totalSquareFootage();
+  const reviewCount = labsNeedingReviewCount();
+  const phases = phaseCounts();
+  const owners = ownerCoverage();
+  const total = labs.length || 1;
+  const statusRows = [
+    { label: "Planned", value: planned, className: "planned" },
+    { label: "Investigation", value: investigation, className: "investigation" },
+    { label: "Proposed", value: proposed, className: "proposed" },
+  ];
+  const equipmentRows = [
+    { label: "Owned", value: ownership.owned, className: "owned" },
+    { label: "Purchase", value: ownership.purchase, className: "purchase" },
+    { label: "Confirm", value: ownership.investigate, className: "investigate" },
+  ];
+  const phaseRows = [
+    { label: "Phase 1", value: phases["phase-1"], className: "planned" },
+    { label: "Phase 2", value: phases["phase-2"], className: "proposed" },
+    { label: "Future", value: phases.future, className: "investigation" },
+  ];
+  const ownerRows = [
+    { label: "Assigned", value: owners.assigned, className: "owned" },
+    { label: "Open", value: owners.open, className: "investigate" },
+    { label: "Unique Leads", value: owners.uniqueOwners, className: "purchase" },
+  ];
+
+  kjTotalLabs.textContent = String(labs.length);
+  kjTotalEquipment.textContent = String(totalEquipment);
+  kjTotalSquareFootage.textContent = `${totalSqFt.toLocaleString()} sq ft`;
+  kjNeedsReview.textContent = String(reviewCount);
+  kjStatusSummary.textContent = `${planned} planned / ${investigation} investigation / ${proposed} proposed`;
+  kjEquipmentSummary.textContent = `${ownership.owned} owned / ${ownership.purchase} purchase / ${ownership.investigate} confirm`;
+  kjPhaseSummary.textContent = `${phases["phase-1"]} phase 1 / ${phases["phase-2"]} phase 2 / ${phases.future} future`;
+  kjOwnerSummary.textContent = `${owners.assigned} assigned / ${owners.open} open`;
+
+  kjStatusBars.innerHTML = statusRows
+    .map(
+      (row) => `
+        <div class="kj-bar-row">
+          <span class="kj-bar-label">${row.label}</span>
+          <div class="kj-bar-track">
+            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
+          </div>
+          <strong class="kj-bar-value">${row.value}</strong>
+        </div>`,
+    )
+    .join("");
+
+  const totalEquipmentSafe = totalEquipment || 1;
+  kjEquipmentBars.innerHTML = equipmentRows
+    .map(
+      (row) => `
+        <div class="kj-bar-row">
+          <span class="kj-bar-label">${row.label}</span>
+          <div class="kj-bar-track">
+            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / totalEquipmentSafe) * 100}%"></span>
+          </div>
+          <strong class="kj-bar-value">${row.value}</strong>
+        </div>`,
+    )
+    .join("");
+
+  kjPhaseBars.innerHTML = phaseRows
+    .map(
+      (row) => `
+        <div class="kj-bar-row">
+          <span class="kj-bar-label">${row.label}</span>
+          <div class="kj-bar-track">
+            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
+          </div>
+          <strong class="kj-bar-value">${row.value}</strong>
+        </div>`,
+    )
+    .join("");
+
+  kjOwnerBars.innerHTML = ownerRows
+    .map(
+      (row) => `
+        <div class="kj-bar-row">
+          <span class="kj-bar-label">${row.label}</span>
+          <div class="kj-bar-track">
+            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
+          </div>
+          <strong class="kj-bar-value">${row.value}</strong>
+        </div>`,
+    )
+    .join("");
+
+  kjTelemetryBar.innerHTML = `
+    <span class="kj-telemetry-pill">${labsWithSquareFootageCount()} labs with square footage</span>
+    <span class="kj-telemetry-pill">${selected?.outlook || "Select a lab to inspect move outlook"}</span>
+    <span class="kj-telemetry-pill">${reviewCount} labs still need review</span>
+  `;
+}
+
+function updateKjCountdown() {
+  const target = new Date("2028-01-01T00:00:00");
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    kjCountdownValue.textContent = "Launch";
+    return;
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  kjCountdownValue.textContent = `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+function startKjCountdown() {
+  updateKjCountdown();
+  if (countdownIntervalId !== null) return;
+  countdownIntervalId = window.setInterval(updateKjCountdown, 1000);
 }
 
 function updateSelectedLabPlanningField(field, value) {
@@ -1133,6 +1330,7 @@ function renderDetailPanel() {
     detailTitle.textContent = "Choose a lab";
     detailSummary.textContent = "Select a card to review its status, equipment list, and space requirements.";
     detailQuickStats.innerHTML = "";
+    kjPlanningHud.innerHTML = "";
     detailStatusSelect.disabled = true;
     detailStatusSelect.innerHTML = `<option value="">No lab selected</option>`;
     detailStatusValue.textContent = "-";
@@ -1184,6 +1382,24 @@ function renderDetailPanel() {
     <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
     <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
   `;
+  kjPlanningHud.innerHTML = `
+    <article class="kj-plan-card">
+      <span class="kj-label">Owner / Lead</span>
+      <strong>${selectedLab.ownerLead || "Awaiting Assignment"}</strong>
+    </article>
+    <article class="kj-plan-card">
+      <span class="kj-label">Next Step</span>
+      <strong>${selectedLab.nextStep || "Define next action"}</strong>
+    </article>
+    <article class="kj-plan-card">
+      <span class="kj-label">Priority</span>
+      <strong>${priorityLabel(selectedLab.priority)}</strong>
+    </article>
+    <article class="kj-plan-card">
+      <span class="kj-label">Phase</span>
+      <strong>${phaseLabel(selectedLab.phase)}</strong>
+    </article>
+  `;
   detailStatusSelect.disabled = false;
   detailStatusSelect.innerHTML = Object.entries(statusConfig)
     .filter(([key]) => key !== "all")
@@ -1233,10 +1449,14 @@ function renderDetailPanel() {
 function render() {
   const selectedChanged = state.lastRenderedSelectedId !== state.selectedId;
   document.body.classList.toggle("presentation-mode", state.presentationMode);
+  document.body.classList.toggle("future-skin", state.presentationMode && state.futureSkin);
   presentationToggleBtn.textContent = state.presentationMode ? "Working Mode" : "Presentation Mode";
+  kjModeBtn.setAttribute("aria-pressed", String(state.futureSkin));
+  kjModeBtn.textContent = state.futureSkin ? "KJ*" : "KJ";
   renderStatusFilterState();
   renderWorkingModeSummary();
   renderLeadershipSummary();
+  renderKjHud();
   renderLabGrid();
   renderDetailPanel();
   if (selectedChanged && state.lastRenderedSelectedId !== null) {
@@ -1405,6 +1625,18 @@ presentationToggleBtn.addEventListener("click", () => {
   render();
 });
 
+topWorkingModeBtn.addEventListener("click", () => {
+  state.presentationMode = false;
+  persistPresentationMode();
+  render();
+});
+
+kjModeBtn.addEventListener("click", () => {
+  state.futureSkin = !state.futureSkin;
+  persistFutureSkin();
+  render();
+});
+
 enterWorkingModeBtn.addEventListener("click", () => {
   state.presentationMode = false;
   persistPresentationMode();
@@ -1441,5 +1673,6 @@ updateStats();
 createStatusFilters();
 render();
 updateTopContextState();
+startKjCountdown();
 
 window.addEventListener("scroll", updateTopContextState, { passive: true });
