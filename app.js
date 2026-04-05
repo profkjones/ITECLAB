@@ -459,6 +459,14 @@ const saveSqftBtn = document.getElementById("saveSqftBtn");
 const sqftResult = document.getElementById("sqftResult");
 const totalSquareFootageValue = document.getElementById("totalSquareFootageValue");
 const totalSquareFootageNote = document.getElementById("totalSquareFootageNote");
+const leadershipStrip = document.getElementById("leadershipStrip");
+const planningOverview = document.getElementById("planningOverview");
+const ownerLeadInput = document.getElementById("ownerLeadInput");
+const nextStepInput = document.getElementById("nextStepInput");
+const prioritySelect = document.getElementById("prioritySelect");
+const phaseSelect = document.getElementById("phaseSelect");
+const sharedUseInput = document.getElementById("sharedUseInput");
+const buildingImpactInput = document.getElementById("buildingImpactInput");
 
 const ownershipConfig = {
   owned: "Already Owned",
@@ -504,6 +512,12 @@ function loadLabs() {
         typeof item === "string" ? { name: item, ownership: "investigate" } : item,
       );
       merged.squareFeet = Number.isFinite(Number(merged.squareFeet)) ? Number(merged.squareFeet) : 0;
+      merged.ownerLead = merged.ownerLead || "";
+      merged.nextStep = merged.nextStep || "";
+      merged.priority = merged.priority || "medium";
+      merged.phase = merged.phase || "phase-1";
+      merged.sharedUse = merged.sharedUse || "";
+      merged.buildingImpact = merged.buildingImpact || "";
       if (merged.id === "soc" && (!override?.shortName || override.shortName === "Security Ops")) {
         merged.shortName = "SOC";
       }
@@ -594,6 +608,50 @@ function labsWithSquareFootageCount() {
   return labs.filter((lab) => (Number(lab.squareFeet) || 0) > 0).length;
 }
 
+function phaseLabel(value) {
+  return (
+    {
+      "phase-1": "Phase 1",
+      "phase-2": "Phase 2",
+      future: "Future Ready",
+    }[value] || "Phase 1"
+  );
+}
+
+function priorityLabel(value) {
+  return (
+    {
+      high: "High Priority",
+      medium: "Medium Priority",
+      low: "Low Priority",
+    }[value] || "Medium Priority"
+  );
+}
+
+function renderLeadershipSummary() {
+  const missingOwner = labs.filter((lab) => !lab.ownerLead.trim()).length;
+  const missingNextStep = labs.filter((lab) => !lab.nextStep.trim()).length;
+  const highPriority = labs.filter((lab) => lab.priority === "high").length;
+  const phaseOne = labs.filter((lab) => lab.phase === "phase-1").length;
+
+  leadershipStrip.innerHTML = `
+    <span class="mode-pill">${highPriority} high priority</span>
+    <span class="mode-pill">${phaseOne} in Phase 1</span>
+    <span class="mode-pill">${missingOwner} without owner</span>
+    <span class="mode-pill">${missingNextStep} without next step</span>
+  `;
+}
+
+function updateSelectedLabPlanningField(field, value) {
+  const lab = labs.find((item) => item.id === state.selectedId);
+  if (!lab) return;
+  lab[field] = value;
+  persistLabs();
+  renderWorkingModeSummary();
+  renderLeadershipSummary();
+  renderDetailPanel();
+}
+
 function downloadFile(filename, content, type) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
@@ -660,6 +718,12 @@ function exportCurrentLabPdf() {
 
   const spaceItems = lab.space.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   const noteItems = lab.notes.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const sharedUseMarkup = lab.sharedUse
+    ? `<p>${escapeHtml(lab.sharedUse)}</p>`
+    : `<p class="muted">Not added yet.</p>`;
+  const buildingImpactMarkup = lab.buildingImpact
+    ? `<p>${escapeHtml(lab.buildingImpact).replace(/\n/g, "<br />")}</p>`
+    : `<p class="muted">Not added yet.</p>`;
   const html = `
 <!doctype html>
 <html lang="en">
@@ -677,6 +741,7 @@ function exportCurrentLabPdf() {
       th { background: #f5f7f8; }
       section { margin-top: 24px; }
       ul { margin: 8px 0 0; padding-left: 20px; }
+      .muted { color: #61707c; }
     </style>
   </head>
   <body>
@@ -685,7 +750,20 @@ function exportCurrentLabPdf() {
     <div class="meta">
       <div><strong>Status</strong><br />${escapeHtml(statusConfig[lab.status].label)}</div>
       <div><strong>Move Outlook</strong><br />${escapeHtml(lab.outlook)}</div>
+      <div><strong>Square Footage</strong><br />${escapeHtml((lab.squareFeet || 0).toLocaleString())} sq ft</div>
+      <div><strong>Owner / Lead</strong><br />${escapeHtml(lab.ownerLead || "Not assigned yet")}</div>
+      <div><strong>Priority</strong><br />${escapeHtml(priorityLabel(lab.priority))}</div>
+      <div><strong>Phase</strong><br />${escapeHtml(phaseLabel(lab.phase))}</div>
+      <div><strong>Next Step</strong><br />${escapeHtml(lab.nextStep || "Not added yet")}</div>
     </div>
+    <section>
+      <h2>Shared Use / Cross-Program Value</h2>
+      ${sharedUseMarkup}
+    </section>
+    <section>
+      <h2>Building Impacts</h2>
+      ${buildingImpactMarkup}
+    </section>
     <section>
       <h2>Equipment</h2>
       <table>
@@ -1075,6 +1153,19 @@ function renderDetailPanel() {
     addEquipmentBtn.disabled = true;
     saveSqftBtn.disabled = true;
     sqftFlatInput.value = "";
+    ownerLeadInput.value = "";
+    nextStepInput.value = "";
+    prioritySelect.value = "medium";
+    phaseSelect.value = "phase-1";
+    sharedUseInput.value = "";
+    buildingImpactInput.value = "";
+    ownerLeadInput.disabled = true;
+    nextStepInput.disabled = true;
+    prioritySelect.disabled = true;
+    phaseSelect.disabled = true;
+    sharedUseInput.disabled = true;
+    buildingImpactInput.disabled = true;
+    planningOverview.innerHTML = "";
     prevLabBtn.disabled = true;
     nextLabBtn.disabled = true;
     return;
@@ -1090,6 +1181,8 @@ function renderDetailPanel() {
     <span class="quickstat-pill">${selectedLab.space.length} space needs</span>
     <span class="quickstat-pill">${selectedLab.notes.length} planning notes</span>
     <span class="quickstat-pill">${(selectedLab.squareFeet || 0).toLocaleString()} sq ft</span>
+    <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
+    <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
   `;
   detailStatusSelect.disabled = false;
   detailStatusSelect.innerHTML = Object.entries(statusConfig)
@@ -1110,11 +1203,29 @@ function renderDetailPanel() {
   saveLabNameBtn.disabled = false;
   addEquipmentBtn.disabled = false;
   saveSqftBtn.disabled = false;
+  ownerLeadInput.disabled = false;
+  nextStepInput.disabled = false;
+  prioritySelect.disabled = false;
+  phaseSelect.disabled = false;
+  sharedUseInput.disabled = false;
+  buildingImpactInput.disabled = false;
   selectedLabNameInput.value = selectedLab.name;
   sqftFlatInput.value = selectedLab.squareFeet || "";
+  ownerLeadInput.value = selectedLab.ownerLead;
+  nextStepInput.value = selectedLab.nextStep;
+  prioritySelect.value = selectedLab.priority;
+  phaseSelect.value = selectedLab.phase;
+  sharedUseInput.value = selectedLab.sharedUse;
+  buildingImpactInput.value = selectedLab.buildingImpact;
   sqftResult.textContent = selectedLab.squareFeet
     ? `Saved for ${selectedLab.shortName || selectedLab.name}: ${selectedLab.squareFeet.toLocaleString()} square feet`
     : "Enter a square footage value for the selected lab.";
+  planningOverview.innerHTML = `
+    <span class="quickstat-pill">${selectedLab.ownerLead ? `Owner: ${selectedLab.ownerLead}` : "Owner needed"}</span>
+    <span class="quickstat-pill">${selectedLab.nextStep ? `Next: ${selectedLab.nextStep}` : "Next step needed"}</span>
+    <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
+    <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
+  `;
   prevLabBtn.disabled = visibleLabs.length <= 1;
   nextLabBtn.disabled = visibleLabs.length <= 1;
 }
@@ -1125,6 +1236,7 @@ function render() {
   presentationToggleBtn.textContent = state.presentationMode ? "Working Mode" : "Presentation Mode";
   renderStatusFilterState();
   renderWorkingModeSummary();
+  renderLeadershipSummary();
   renderLabGrid();
   renderDetailPanel();
   if (selectedChanged && state.lastRenderedSelectedId !== null) {
@@ -1220,6 +1332,12 @@ addLabBtn.addEventListener("click", () => {
         : "New resource proposed for ITEC",
     summary: "New lab entry added during working mode planning.",
     squareFeet: 0,
+    ownerLead: "",
+    nextStep: "",
+    priority: "medium",
+    phase: "phase-1",
+    sharedUse: "",
+    buildingImpact: "",
     equipment: [],
     space: [],
     notes: ["Added in working mode. Update summary, space needs, and planning notes as decisions become clearer."],
@@ -1255,6 +1373,30 @@ sqftFlatInput.addEventListener("keydown", (event) => {
     event.preventDefault();
     saveSqftBtn.click();
   }
+});
+
+ownerLeadInput.addEventListener("input", (event) => {
+  updateSelectedLabPlanningField("ownerLead", event.target.value);
+});
+
+nextStepInput.addEventListener("input", (event) => {
+  updateSelectedLabPlanningField("nextStep", event.target.value);
+});
+
+prioritySelect.addEventListener("change", (event) => {
+  updateSelectedLabPlanningField("priority", event.target.value);
+});
+
+phaseSelect.addEventListener("change", (event) => {
+  updateSelectedLabPlanningField("phase", event.target.value);
+});
+
+sharedUseInput.addEventListener("input", (event) => {
+  updateSelectedLabPlanningField("sharedUse", event.target.value);
+});
+
+buildingImpactInput.addEventListener("input", (event) => {
+  updateSelectedLabPlanningField("buildingImpact", event.target.value);
 });
 
 presentationToggleBtn.addEventListener("click", () => {

@@ -66,6 +66,11 @@
           <strong class="stat-value" id="proposedLabs">0</strong>
           <p>Spaces or resources identified as new build-outs.</p>
         </article>
+        <article class="stat-card panel stat-square-footage working-mode-stat" tabindex="0">
+          <span class="stat-label">Total Square Footage</span>
+          <strong class="stat-value stat-value-small" id="totalSquareFootageValue">0 sq ft</strong>
+          <p id="totalSquareFootageNote">Save square footage to each lab in Working Mode to build the total.</p>
+        </article>
       </section>
 
       <section class="workspace">
@@ -116,12 +121,9 @@
               <button id="showAllBtn" class="ghost">Show All</button>
             </div>
             <div class="working-mode-strip" id="workingModeStrip" aria-live="polite"></div>
-            <div class="working-mode-total panel" id="workingModeTotal">
-              <span class="working-mode-total-label">Total Square Footage</span>
-              <strong class="working-mode-total-value" id="totalSquareFootageValue">0 sq ft</strong>
-              <p class="working-mode-total-note" id="totalSquareFootageNote">
-                Save square footage to each lab in Working Mode to build the total.
-              </p>
+            <div class="working-mode-leadership panel" id="workingModeLeadership">
+              <span class="working-mode-total-label">Leadership Snapshot</span>
+              <div class="leadership-strip" id="leadershipStrip" aria-live="polite"></div>
             </div>
           </div>
 
@@ -185,6 +187,64 @@
           <section class="detail-section">
             <h3>Planning Notes</h3>
             <ul id="detailNotes" class="detail-list"></ul>
+          </section>
+
+          <section class="detail-section planning-framework-section">
+            <h3>Planning Framework</h3>
+            <p class="editor-help">
+              Working mode fields for leadership alignment, planning conversations, and build sequencing.
+            </p>
+
+            <div class="planning-overview" id="planningOverview" aria-live="polite"></div>
+
+            <div class="editor-card">
+              <div class="editor-grid two-column">
+                <div>
+                  <label for="ownerLeadInput">Owner / Lead</label>
+                  <input id="ownerLeadInput" type="text" placeholder="Example: Dean Smith" />
+                </div>
+                <div>
+                  <label for="nextStepInput">Next Step</label>
+                  <input id="nextStepInput" type="text" placeholder="Example: Meet with Facilities" />
+                </div>
+                <div>
+                  <label for="prioritySelect">Priority</label>
+                  <select id="prioritySelect" class="detail-select" aria-label="Priority">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="phaseSelect">Phase</label>
+                  <select id="phaseSelect" class="detail-select" aria-label="Phase">
+                    <option value="phase-1">Phase 1</option>
+                    <option value="phase-2">Phase 2</option>
+                    <option value="future">Future Ready</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-card">
+              <label for="sharedUseInput">Shared Use / Cross-Program Value</label>
+              <textarea
+                id="sharedUseInput"
+                class="editor-textarea"
+                rows="3"
+                placeholder="Example: Supports robotics, cybersecurity, networking, and employer demos."
+              ></textarea>
+            </div>
+
+            <div class="editor-card">
+              <label for="buildingImpactInput">Building Impacts</label>
+              <textarea
+                id="buildingImpactInput"
+                class="editor-textarea"
+                rows="4"
+                placeholder="List building needs like power, ventilation, network, security, floor loading, water, etc."
+              ></textarea>
+            </div>
           </section>
 
           <section class="detail-section working-editor-section">

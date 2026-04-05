@@ -165,7 +165,7 @@ h3 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 20px;
   transition: gap 180ms ease;
@@ -202,10 +202,19 @@ h3 {
   background: linear-gradient(180deg, rgba(219, 238, 220, 0.95), rgba(242, 250, 243, 0.92));
 }
 
+.stat-square-footage {
+  background: linear-gradient(180deg, rgba(233, 240, 247, 0.95), rgba(248, 250, 252, 0.92));
+}
+
 .stat-value {
   display: block;
   margin: 10px 0 8px;
   font: 700 clamp(2rem, 3vw, 2.8rem) / 1 "Fraunces", serif;
+}
+
+.stat-value-small {
+  font-size: clamp(1.4rem, 2.1vw, 2.1rem);
+  line-height: 1.1;
 }
 
 .stat-card p {
@@ -659,14 +668,6 @@ button:hover,
   padding-top: 4px;
 }
 
-.working-mode-total {
-  width: 100%;
-  padding: 18px 20px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(216, 235, 248, 0.9), rgba(255, 252, 245, 0.95));
-  border: 1px solid rgba(23, 71, 106, 0.12);
-}
-
 .working-mode-total-label {
   display: block;
   font-size: 0.8rem;
@@ -686,6 +687,22 @@ button:hover,
   margin: 8px 0 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.working-mode-leadership {
+  width: 100%;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(247, 228, 186, 0.36), rgba(255, 252, 245, 0.95));
+  border: 1px solid rgba(181, 122, 24, 0.14);
+}
+
+.leadership-strip,
+.planning-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .mode-pill,
@@ -951,9 +968,11 @@ body.presentation-mode .presentation-footer-action {
 }
 
 body.presentation-mode .working-mode-strip,
-body.presentation-mode .working-mode-total,
+body.presentation-mode .working-mode-stat,
+body.presentation-mode .working-mode-leadership,
 body.presentation-mode #clearSearchBtn,
 body.presentation-mode .detail-quickstats,
+body.presentation-mode .planning-framework-section,
 body.presentation-mode .working-editor-section {
   display: none;
 }
@@ -1233,6 +1252,10 @@ button.ghost {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.editor-grid.two-column {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .editor-card input[type="text"] {
   width: 100%;
   border: 1px solid var(--line);
@@ -1240,6 +1263,18 @@ button.ghost {
   padding: 13px 14px;
   background: rgba(255, 255, 255, 0.96);
   color: var(--ink);
+}
+
+.editor-textarea {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
 }
 
 .sqft-grid {
@@ -1372,6 +1407,10 @@ button.ghost {
   }
 
   .editor-inline {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-grid.two-column {
     grid-template-columns: 1fr;
   }
 
