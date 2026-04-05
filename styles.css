@@ -969,13 +969,39 @@ body.presentation-mode .toolbar-actions button {
 
 body.presentation-mode .toolbar-actions #kjModeBtn {
   display: inline-flex;
-  min-width: 44px;
-  width: 44px;
+  min-width: 38px;
+  width: 38px;
+  height: 38px;
   justify-content: center;
-  padding: 10px 0;
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(23, 71, 106, 0.12);
-  color: rgba(23, 71, 106, 0.7);
+  align-items: center;
+  padding: 0;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(23, 71, 106, 0.16);
+  color: rgba(23, 71, 106, 0.52);
+  box-shadow: 0 8px 20px rgba(24, 33, 39, 0.12);
+  opacity: 0.32;
+  backdrop-filter: blur(10px);
+  transition:
+    opacity 160ms ease,
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+body.presentation-mode .toolbar-actions #kjModeBtn:hover,
+body.presentation-mode .toolbar-actions #kjModeBtn:focus-visible {
+  opacity: 0.92;
+  color: rgba(23, 71, 106, 0.92);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(23, 71, 106, 0.24);
+  box-shadow: 0 14px 28px rgba(24, 33, 39, 0.18);
 }
 
 body.presentation-mode .toolbar-actions #presentationToggleBtn {
@@ -1199,7 +1225,17 @@ body.presentation-mode.future-skin #kjModeBtn:hover {
 body.presentation-mode.future-skin #kjModeBtn {
   color: #ffd66b;
   border-color: rgba(255, 214, 107, 0.34);
-  box-shadow: 0 0 8px rgba(255, 214, 107, 0.08);
+  background: rgba(8, 13, 22, 0.44);
+  box-shadow:
+    0 0 8px rgba(255, 214, 107, 0.08),
+    0 10px 22px rgba(0, 0, 0, 0.34);
+}
+
+body.presentation-mode.future-skin #kjModeBtn:hover,
+body.presentation-mode.future-skin #kjModeBtn:focus-visible {
+  background: rgba(10, 16, 26, 0.92);
+  color: #fff2bf;
+  border-color: rgba(255, 214, 107, 0.54);
 }
 
 body.presentation-mode.future-skin #topWorkingModeBtn {
@@ -1436,6 +1472,33 @@ body.presentation-mode.future-skin .kj-command-text {
   line-height: 1.6;
 }
 
+body.presentation-mode.future-skin .kj-featured-mission {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  gap: 18px;
+  padding: 22px 24px;
+  grid-column: 1 / -1;
+}
+
+body.presentation-mode.future-skin .kj-featured-copy {
+  display: grid;
+  gap: 8px;
+}
+
+body.presentation-mode.future-skin .kj-featured-copy h3 {
+  margin: 0;
+  font: 400 clamp(1.4rem, 2.3vw, 2rem) / 1.05 "Aldrich", "Manrope", sans-serif;
+  color: #f3f0dd;
+}
+
+body.presentation-mode.future-skin .kj-featured-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-content: start;
+  justify-content: flex-start;
+}
+
 body.presentation-mode.future-skin .kj-label {
   margin: 0;
   font-size: 0.72rem;
@@ -1499,7 +1562,11 @@ body.presentation-mode.future-skin .kj-chart-header strong {
 }
 
 body.presentation-mode.future-skin .kj-status-bars,
-body.presentation-mode.future-skin .kj-equipment-bars {
+body.presentation-mode.future-skin .kj-equipment-bars,
+body.presentation-mode.future-skin .kj-phase-bars,
+body.presentation-mode.future-skin .kj-owner-bars,
+body.presentation-mode.future-skin .kj-risk-bars,
+body.presentation-mode.future-skin .kj-coverage-bars {
   display: grid;
   gap: 12px;
   margin-top: 18px;
@@ -2138,6 +2205,7 @@ button.ghost {
   body.presentation-mode.future-skin .kj-metric-grid,
   body.presentation-mode.future-skin .kj-analytics-grid,
   body.presentation-mode.future-skin .kj-planning-hud,
+  body.presentation-mode.future-skin .kj-featured-mission,
   body.presentation-mode.future-skin .detail-meta {
     grid-template-columns: 1fr;
   }
@@ -2221,6 +2289,10 @@ button.ghost {
     align-items: stretch;
   }
 
+  body.presentation-mode.future-skin .kj-featured-mission {
+    grid-template-columns: 1fr;
+  }
+
   body.presentation-mode.future-skin .kj-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2235,5 +2307,144 @@ button.ghost {
 
   body.presentation-mode.future-skin .kj-bar-row {
     grid-template-columns: 72px minmax(0, 1fr) 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100vw - 12px, 100%);
+    margin-bottom: 20px;
+  }
+
+  .hero,
+  .toolbar,
+  .sidebar,
+  .detail-panel {
+    padding: 16px;
+  }
+
+  .stat-card,
+  .lab-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: clamp(1.8rem, 8vw, 2.3rem);
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .detail-export-row,
+  .detail-nav {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .equipment-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.presentation-mode.future-skin .toolbar {
+    padding: 16px;
+  }
+
+  body.presentation-mode.future-skin .toolbar::after {
+    position: static;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  body.presentation-mode.future-skin .toolbar-search,
+  body.presentation-mode.future-skin .kj-countdown,
+  body.presentation-mode.future-skin .toolbar-actions {
+    min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  body.presentation-mode.future-skin .kj-countdown {
+    clip-path: none;
+    border-radius: 14px;
+  }
+
+  body.presentation-mode.future-skin .toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  body.presentation-mode.future-skin .toolbar-actions button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  body.presentation-mode.future-skin .kj-command-panel {
+    padding: 18px 16px;
+  }
+
+  body.presentation-mode.future-skin .kj-command-emblem {
+    display: none;
+  }
+
+  body.presentation-mode.future-skin .kj-metric-grid,
+  body.presentation-mode.future-skin .kj-analytics-grid,
+  body.presentation-mode.future-skin .kj-planning-hud,
+  body.presentation-mode.future-skin .detail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  body.presentation-mode.future-skin .kj-metric-card,
+  body.presentation-mode.future-skin .kj-chart-panel,
+  body.presentation-mode.future-skin .kj-deck-label,
+  body.presentation-mode.future-skin .kj-telemetry-bar {
+    padding: 14px 16px;
+  }
+
+  body.presentation-mode.future-skin .kj-chart-header {
+    align-items: stretch;
+  }
+
+  body.presentation-mode.future-skin .kj-countdown-value,
+  body.presentation-mode.future-skin .kj-metric-value {
+    font-size: clamp(1rem, 5.5vw, 1.6rem);
+  }
+
+  body.presentation-mode.future-skin .detail-panel {
+    padding: 22px 16px;
+  }
+
+  body.presentation-mode.future-skin .detail-panel::after {
+    position: static;
+    display: inline-flex;
+    margin-bottom: 12px;
+  }
+
+  body.presentation-mode.future-skin .card-grid {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  body.presentation-mode.future-skin .card-grid::before {
+    display: none;
+  }
+
+  body.presentation-mode .toolbar-actions #kjModeBtn {
+    right: 12px;
+    bottom: 12px;
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    font-size: 0.78rem;
   }
 }

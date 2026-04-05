@@ -452,6 +452,9 @@ const workingModeSummary = document.getElementById("workingModeSummary");
 const workingModeStrip = document.getElementById("workingModeStrip");
 const kjHud = document.getElementById("kjHud");
 const kjCountdownValue = document.getElementById("kjCountdownValue");
+const kjFeaturedTitle = document.getElementById("kjFeaturedTitle");
+const kjFeaturedSummary = document.getElementById("kjFeaturedSummary");
+const kjFeaturedMetrics = document.getElementById("kjFeaturedMetrics");
 const kjTotalLabs = document.getElementById("kjTotalLabs");
 const kjTotalEquipment = document.getElementById("kjTotalEquipment");
 const kjTotalSquareFootage = document.getElementById("kjTotalSquareFootage");
@@ -464,6 +467,10 @@ const kjPhaseSummary = document.getElementById("kjPhaseSummary");
 const kjPhaseBars = document.getElementById("kjPhaseBars");
 const kjOwnerSummary = document.getElementById("kjOwnerSummary");
 const kjOwnerBars = document.getElementById("kjOwnerBars");
+const kjRiskSummary = document.getElementById("kjRiskSummary");
+const kjRiskBars = document.getElementById("kjRiskBars");
+const kjCoverageSummary = document.getElementById("kjCoverageSummary");
+const kjCoverageBars = document.getElementById("kjCoverageBars");
 const kjTelemetryBar = document.getElementById("kjTelemetryBar");
 const selectedLabNameInput = document.getElementById("selectedLabNameInput");
 const saveLabNameBtn = document.getElementById("saveLabNameBtn");
@@ -702,6 +709,66 @@ function ownerCoverage() {
   return { assigned, open, uniqueOwners };
 }
 
+function riskCounts() {
+  const missingOwner = labs.filter((lab) => !lab.ownerLead.trim()).length;
+  const missingNextStep = labs.filter((lab) => !lab.nextStep.trim()).length;
+  const missingSquareFootage = labs.filter((lab) => !(Number(lab.squareFeet) > 0)).length;
+  const needsReview = labsNeedingReviewCount();
+
+  return { missingOwner, missingNextStep, missingSquareFootage, needsReview };
+}
+
+function coverageCounts() {
+  return labs.reduce(
+    (totals, lab) => {
+      const filledFields = [
+        lab.ownerLead.trim(),
+        lab.nextStep.trim(),
+        Number(lab.squareFeet) > 0 ? "sqft" : "",
+        lab.sharedUse.trim(),
+        lab.buildingImpact.trim(),
+      ].filter(Boolean).length;
+
+      if (filledFields === 5) {
+        totals.complete += 1;
+      } else if (filledFields > 0) {
+        totals.partial += 1;
+      } else {
+        totals.open += 1;
+      }
+
+      return totals;
+    },
+    { complete: 0, partial: 0, open: 0 },
+  );
+}
+
+function featuredMissionLab() {
+  if (!labs.length) return null;
+
+  const priorityWeight = { high: 3, medium: 2, low: 1 };
+  const phaseWeight = { "phase-1": 3, "phase-2": 2, future: 1 };
+
+  const scored = labs.map((lab) => {
+    const counts = equipmentCounts(lab.equipment);
+    let score = 0;
+
+    score += priorityWeight[lab.priority] || 0;
+    score += phaseWeight[lab.phase] || 0;
+    score += lab.status === "investigation" ? 3 : 0;
+    score += lab.status === "proposed" ? 2 : 0;
+    score += !lab.ownerLead.trim() ? 2 : 0;
+    score += !lab.nextStep.trim() ? 2 : 0;
+    score += !(Number(lab.squareFeet) > 0) ? 1 : 0;
+    score += counts.investigate > 0 ? 2 : 0;
+
+    return { lab, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.lab || null;
+}
+
 function phaseLabel(value) {
   return (
     {
@@ -738,6 +805,7 @@ function renderLeadershipSummary() {
 
 function renderKjHud() {
   const selected = selectedLab();
+  const featured = featuredMissionLab();
   const planned = countByStatus("planned");
   const investigation = countByStatus("investigation");
   const proposed = countByStatus("proposed");
@@ -747,6 +815,8 @@ function renderKjHud() {
   const reviewCount = labsNeedingReviewCount();
   const phases = phaseCounts();
   const owners = ownerCoverage();
+  const risks = riskCounts();
+  const coverage = coverageCounts();
   const total = labs.length || 1;
   const statusRows = [
     { label: "Planned", value: planned, className: "planned" },
@@ -768,6 +838,32 @@ function renderKjHud() {
     { label: "Open", value: owners.open, className: "investigate" },
     { label: "Unique Leads", value: owners.uniqueOwners, className: "purchase" },
   ];
+  const riskRows = [
+    { label: "No Owner", value: risks.missingOwner, className: "investigate" },
+    { label: "No Next Step", value: risks.missingNextStep, className: "investigate" },
+    { label: "No Sq Ft", value: risks.missingSquareFootage, className: "purchase" },
+    { label: "Need Review", value: risks.needsReview, className: "proposed" },
+  ];
+  const coverageRows = [
+    { label: "Complete", value: coverage.complete, className: "owned" },
+    { label: "Partial", value: coverage.partial, className: "purchase" },
+    { label: "Open", value: coverage.open, className: "investigate" },
+  ];
+
+  kjFeaturedTitle.textContent = featured ? featured.name : "Awaiting Mission Selection";
+  kjFeaturedSummary.textContent = featured
+    ? `${featured.summary} ${featured.outlook}.`
+    : "Select or prioritize a lab to surface the current mission focus.";
+  kjFeaturedMetrics.innerHTML = featured
+    ? `
+      <span class="kj-status-chip">${priorityLabel(featured.priority)}</span>
+      <span class="kj-status-chip">${phaseLabel(featured.phase)}</span>
+      <span class="kj-status-chip">${statusConfig[featured.status].label}</span>
+      <span class="kj-status-chip">${(featured.squareFeet || 0).toLocaleString()} sq ft</span>
+      <span class="kj-status-chip">${featured.ownerLead || "Owner needed"}</span>
+      <span class="kj-status-chip">${featured.nextStep || "Next step needed"}</span>
+    `
+    : "";
 
   kjTotalLabs.textContent = String(labs.length);
   kjTotalEquipment.textContent = String(totalEquipment);
@@ -777,6 +873,8 @@ function renderKjHud() {
   kjEquipmentSummary.textContent = `${ownership.owned} owned / ${ownership.purchase} purchase / ${ownership.investigate} confirm`;
   kjPhaseSummary.textContent = `${phases["phase-1"]} phase 1 / ${phases["phase-2"]} phase 2 / ${phases.future} future`;
   kjOwnerSummary.textContent = `${owners.assigned} assigned / ${owners.open} open`;
+  kjRiskSummary.textContent = `${risks.missingOwner} owner / ${risks.missingNextStep} next step / ${risks.missingSquareFootage} sq ft / ${risks.needsReview} review`;
+  kjCoverageSummary.textContent = `${coverage.complete} complete / ${coverage.partial} partial / ${coverage.open} open`;
 
   kjStatusBars.innerHTML = statusRows
     .map(
@@ -819,6 +917,32 @@ function renderKjHud() {
     .join("");
 
   kjOwnerBars.innerHTML = ownerRows
+    .map(
+      (row) => `
+        <div class="kj-bar-row">
+          <span class="kj-bar-label">${row.label}</span>
+          <div class="kj-bar-track">
+            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
+          </div>
+          <strong class="kj-bar-value">${row.value}</strong>
+        </div>`,
+    )
+    .join("");
+
+  kjRiskBars.innerHTML = riskRows
+    .map(
+      (row) => `
+        <div class="kj-bar-row">
+          <span class="kj-bar-label">${row.label}</span>
+          <div class="kj-bar-track">
+            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
+          </div>
+          <strong class="kj-bar-value">${row.value}</strong>
+        </div>`,
+    )
+    .join("");
+
+  kjCoverageBars.innerHTML = coverageRows
     .map(
       (row) => `
         <div class="kj-bar-row">
