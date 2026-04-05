@@ -2170,6 +2170,14 @@ button.ghost {
     grid-template-columns: 1fr;
   }
 
+  body.presentation-mode .content {
+    order: 1;
+  }
+
+  body.presentation-mode .detail-panel {
+    order: 0;
+  }
+
   body.presentation-mode .card-grid,
   body.presentation-mode .detail-meta {
     grid-template-columns: 1fr;
