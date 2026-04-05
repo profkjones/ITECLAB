@@ -804,6 +804,26 @@ function renderLeadershipSummary() {
 }
 
 function renderKjHud() {
+  if (
+    !kjTotalLabs ||
+    !kjTotalEquipment ||
+    !kjTotalSquareFootage ||
+    !kjNeedsReview ||
+    !kjStatusSummary ||
+    !kjStatusBars ||
+    !kjEquipmentSummary ||
+    !kjEquipmentBars ||
+    !kjPhaseSummary ||
+    !kjPhaseBars ||
+    !kjOwnerSummary ||
+    !kjOwnerBars ||
+    !kjRiskSummary ||
+    !kjRiskBars ||
+    !kjTelemetryBar
+  ) {
+    return;
+  }
+
   const selected = selectedLab();
   const featured = featuredMissionLab();
   const planned = countByStatus("planned");
@@ -850,20 +870,22 @@ function renderKjHud() {
     { label: "Open", value: coverage.open, className: "investigate" },
   ];
 
-  kjFeaturedTitle.textContent = featured ? featured.name : "Awaiting Mission Selection";
-  kjFeaturedSummary.textContent = featured
-    ? `${featured.summary} ${featured.outlook}.`
-    : "Select or prioritize a lab to surface the current mission focus.";
-  kjFeaturedMetrics.innerHTML = featured
-    ? `
-      <span class="kj-status-chip">${priorityLabel(featured.priority)}</span>
-      <span class="kj-status-chip">${phaseLabel(featured.phase)}</span>
-      <span class="kj-status-chip">${statusConfig[featured.status].label}</span>
-      <span class="kj-status-chip">${(featured.squareFeet || 0).toLocaleString()} sq ft</span>
-      <span class="kj-status-chip">${featured.ownerLead || "Owner needed"}</span>
-      <span class="kj-status-chip">${featured.nextStep || "Next step needed"}</span>
-    `
-    : "";
+  if (kjFeaturedTitle && kjFeaturedSummary && kjFeaturedMetrics) {
+    kjFeaturedTitle.textContent = featured ? featured.name : "Awaiting Mission Selection";
+    kjFeaturedSummary.textContent = featured
+      ? `${featured.summary} ${featured.outlook}.`
+      : "Select or prioritize a lab to surface the current mission focus.";
+    kjFeaturedMetrics.innerHTML = featured
+      ? `
+        <span class="kj-status-chip">${priorityLabel(featured.priority)}</span>
+        <span class="kj-status-chip">${phaseLabel(featured.phase)}</span>
+        <span class="kj-status-chip">${statusConfig[featured.status].label}</span>
+        <span class="kj-status-chip">${(featured.squareFeet || 0).toLocaleString()} sq ft</span>
+        <span class="kj-status-chip">${featured.ownerLead || "Owner needed"}</span>
+        <span class="kj-status-chip">${featured.nextStep || "Next step needed"}</span>
+      `
+      : "";
+  }
 
   kjTotalLabs.textContent = String(labs.length);
   kjTotalEquipment.textContent = String(totalEquipment);
@@ -874,7 +896,9 @@ function renderKjHud() {
   kjPhaseSummary.textContent = `${phases["phase-1"]} phase 1 / ${phases["phase-2"]} phase 2 / ${phases.future} future`;
   kjOwnerSummary.textContent = `${owners.assigned} assigned / ${owners.open} open`;
   kjRiskSummary.textContent = `${risks.missingOwner} owner / ${risks.missingNextStep} next step / ${risks.missingSquareFootage} sq ft / ${risks.needsReview} review`;
-  kjCoverageSummary.textContent = `${coverage.complete} complete / ${coverage.partial} partial / ${coverage.open} open`;
+  if (kjCoverageSummary) {
+    kjCoverageSummary.textContent = `${coverage.complete} complete / ${coverage.partial} partial / ${coverage.open} open`;
+  }
 
   kjStatusBars.innerHTML = statusRows
     .map(
@@ -942,18 +966,20 @@ function renderKjHud() {
     )
     .join("");
 
-  kjCoverageBars.innerHTML = coverageRows
-    .map(
-      (row) => `
-        <div class="kj-bar-row">
-          <span class="kj-bar-label">${row.label}</span>
-          <div class="kj-bar-track">
-            <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
-          </div>
-          <strong class="kj-bar-value">${row.value}</strong>
-        </div>`,
-    )
-    .join("");
+  if (kjCoverageBars) {
+    kjCoverageBars.innerHTML = coverageRows
+      .map(
+        (row) => `
+          <div class="kj-bar-row">
+            <span class="kj-bar-label">${row.label}</span>
+            <div class="kj-bar-track">
+              <span class="kj-bar-fill ${row.className}" style="width: ${(row.value / total) * 100}%"></span>
+            </div>
+            <strong class="kj-bar-value">${row.value}</strong>
+          </div>`,
+      )
+      .join("");
+  }
 
   kjTelemetryBar.innerHTML = `
     <span class="kj-telemetry-pill">${labsWithSquareFootageCount()} labs with square footage</span>
@@ -963,6 +989,8 @@ function renderKjHud() {
 }
 
 function updateKjCountdown() {
+  if (!kjCountdownValue) return;
+
   const target = new Date("2028-01-01T00:00:00");
   const now = new Date();
   const diff = target.getTime() - now.getTime();
@@ -1599,8 +1627,10 @@ function render() {
   document.body.classList.toggle("presentation-mode", state.presentationMode);
   document.body.classList.toggle("future-skin", state.presentationMode && state.futureSkin);
   presentationToggleBtn.textContent = state.presentationMode ? "Working Mode" : "Presentation Mode";
-  kjModeBtn.setAttribute("aria-pressed", String(state.futureSkin));
-  kjModeBtn.textContent = state.futureSkin ? "KJ*" : "KJ";
+  if (kjModeBtn) {
+    kjModeBtn.setAttribute("aria-pressed", String(state.futureSkin));
+    kjModeBtn.textContent = state.futureSkin ? "KJ*" : "KJ";
+  }
   renderStatusFilterState();
   renderWorkingModeSummary();
   renderLeadershipSummary();
@@ -1779,11 +1809,13 @@ topWorkingModeBtn.addEventListener("click", () => {
   render();
 });
 
-kjModeBtn.addEventListener("click", () => {
-  state.futureSkin = !state.futureSkin;
-  persistFutureSkin();
-  render();
-});
+if (kjModeBtn) {
+  kjModeBtn.addEventListener("click", () => {
+    state.futureSkin = !state.futureSkin;
+    persistFutureSkin();
+    render();
+  });
+}
 
 enterWorkingModeBtn.addEventListener("click", () => {
   state.presentationMode = false;
