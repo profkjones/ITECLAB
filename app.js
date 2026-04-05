@@ -524,7 +524,7 @@ function loadLabs() {
     const parsed = JSON.parse(saved);
     if (!Array.isArray(parsed)) return structuredClone(defaultLabs);
 
-    return defaultLabs.map((lab) => {
+    const mergedDefaults = defaultLabs.map((lab) => {
       const override = parsed.find((item) => item.id === lab.id);
       const merged = override ? { ...lab, ...override } : structuredClone(lab);
       merged.equipment = (merged.equipment || []).map((item) =>
@@ -542,6 +542,30 @@ function loadLabs() {
       }
       return merged;
     });
+
+    const customLabs = parsed
+      .filter((savedLab) => !defaultLabs.some((lab) => lab.id === savedLab.id))
+      .map((lab) => {
+        const normalized = structuredClone(lab);
+        normalized.equipment = (normalized.equipment || []).map((item) =>
+          typeof item === "string" ? { name: item, ownership: "investigate" } : item,
+        );
+        normalized.space = normalized.space || [];
+        normalized.notes = normalized.notes || [];
+        normalized.squareFeet = Number.isFinite(Number(normalized.squareFeet)) ? Number(normalized.squareFeet) : 0;
+        normalized.ownerLead = normalized.ownerLead || "";
+        normalized.nextStep = normalized.nextStep || "";
+        normalized.priority = normalized.priority || "medium";
+        normalized.phase = normalized.phase || "phase-1";
+        normalized.sharedUse = normalized.sharedUse || "";
+        normalized.buildingImpact = normalized.buildingImpact || "";
+        normalized.visual = normalized.visual || "data";
+        normalized.summary = normalized.summary || "New lab entry added during working mode planning.";
+        normalized.outlook = normalized.outlook || "Needs planning review";
+        return normalized;
+      });
+
+    return [...mergedDefaults, ...customLabs];
   } catch {
     return structuredClone(defaultLabs);
   }
