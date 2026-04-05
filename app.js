@@ -523,58 +523,49 @@ const labVisuals = {
   media: { emoji: "🎬", className: "visual-media" },
 };
 
+function normalizeLab(rawLab, override = null) {
+  const merged = override ? { ...rawLab, ...override } : structuredClone(rawLab);
+  merged.equipment = (merged.equipment || []).map((item) =>
+    typeof item === "string" ? { name: item, ownership: "investigate" } : item,
+  );
+  merged.space = merged.space || [];
+  merged.notes = merged.notes || [];
+  merged.squareFeet = Number.isFinite(Number(merged.squareFeet)) ? Number(merged.squareFeet) : 0;
+  merged.ownerLead = merged.ownerLead || "";
+  merged.nextStep = merged.nextStep || "";
+  merged.priority = merged.priority || "medium";
+  merged.phase = merged.phase || "phase-1";
+  merged.sharedUse = merged.sharedUse || "";
+  merged.buildingImpact = merged.buildingImpact || "";
+  merged.visual = merged.visual || "data";
+  merged.summary = merged.summary || "New lab entry added during working mode planning.";
+  merged.outlook = merged.outlook || "Needs planning review";
+  if (merged.id === "soc" && (!override?.shortName || override.shortName === "Security Ops")) {
+    merged.shortName = "SOC";
+  }
+  return merged;
+}
+
 function loadLabs() {
   try {
     const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return structuredClone(defaultLabs);
+    if (!saved) return defaultLabs.map((lab) => normalizeLab(lab));
 
     const parsed = JSON.parse(saved);
-    if (!Array.isArray(parsed)) return structuredClone(defaultLabs);
+    if (!Array.isArray(parsed)) return defaultLabs.map((lab) => normalizeLab(lab));
 
     const mergedDefaults = defaultLabs.map((lab) => {
       const override = parsed.find((item) => item.id === lab.id);
-      const merged = override ? { ...lab, ...override } : structuredClone(lab);
-      merged.equipment = (merged.equipment || []).map((item) =>
-        typeof item === "string" ? { name: item, ownership: "investigate" } : item,
-      );
-      merged.squareFeet = Number.isFinite(Number(merged.squareFeet)) ? Number(merged.squareFeet) : 0;
-      merged.ownerLead = merged.ownerLead || "";
-      merged.nextStep = merged.nextStep || "";
-      merged.priority = merged.priority || "medium";
-      merged.phase = merged.phase || "phase-1";
-      merged.sharedUse = merged.sharedUse || "";
-      merged.buildingImpact = merged.buildingImpact || "";
-      if (merged.id === "soc" && (!override?.shortName || override.shortName === "Security Ops")) {
-        merged.shortName = "SOC";
-      }
-      return merged;
+      return normalizeLab(lab, override);
     });
 
     const customLabs = parsed
       .filter((savedLab) => !defaultLabs.some((lab) => lab.id === savedLab.id))
-      .map((lab) => {
-        const normalized = structuredClone(lab);
-        normalized.equipment = (normalized.equipment || []).map((item) =>
-          typeof item === "string" ? { name: item, ownership: "investigate" } : item,
-        );
-        normalized.space = normalized.space || [];
-        normalized.notes = normalized.notes || [];
-        normalized.squareFeet = Number.isFinite(Number(normalized.squareFeet)) ? Number(normalized.squareFeet) : 0;
-        normalized.ownerLead = normalized.ownerLead || "";
-        normalized.nextStep = normalized.nextStep || "";
-        normalized.priority = normalized.priority || "medium";
-        normalized.phase = normalized.phase || "phase-1";
-        normalized.sharedUse = normalized.sharedUse || "";
-        normalized.buildingImpact = normalized.buildingImpact || "";
-        normalized.visual = normalized.visual || "data";
-        normalized.summary = normalized.summary || "New lab entry added during working mode planning.";
-        normalized.outlook = normalized.outlook || "Needs planning review";
-        return normalized;
-      });
+      .map((lab) => normalizeLab(lab));
 
     return [...mergedDefaults, ...customLabs];
   } catch {
-    return structuredClone(defaultLabs);
+    return defaultLabs.map((lab) => normalizeLab(lab));
   }
 }
 
