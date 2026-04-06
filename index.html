@@ -107,6 +107,10 @@
               <p class="toolbar-supporting" id="workingModeSummary">
                 Choose a lab to update statuses, equipment readiness, and planning notes.
               </p>
+              <div class="cloud-sync-status" id="cloudSyncStatus" aria-live="polite">
+                <strong id="cloudSyncLabel">Local only</strong>
+                <span id="cloudSyncHint">Connect Supabase to share updates across computers and the live site.</span>
+              </div>
             </div>
             <div class="toolbar-search">
               <input
@@ -423,6 +427,8 @@
       </section>
     </main>
 
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -493,6 +493,29 @@ const prioritySelect = document.getElementById("prioritySelect");
 const phaseSelect = document.getElementById("phaseSelect");
 const sharedUseInput = document.getElementById("sharedUseInput");
 const buildingImpactInput = document.getElementById("buildingImpactInput");
+const cloudSyncStatus = document.getElementById("cloudSyncStatus");
+const cloudSyncLabel = document.getElementById("cloudSyncLabel");
+const cloudSyncHint = document.getElementById("cloudSyncHint");
+
+const cloudConfig = {
+  supabaseUrl: window.ITECLAB_CONFIG?.supabaseUrl || "",
+  supabaseAnonKey: window.ITECLAB_CONFIG?.supabaseAnonKey || "",
+  workspace: window.ITECLAB_CONFIG?.workspace || "iteclab-main",
+  table: window.ITECLAB_CONFIG?.table || "lab_tracker_state",
+  syncIntervalMs: Number(window.ITECLAB_CONFIG?.syncIntervalMs) || 20000,
+};
+
+const cloudState = {
+  client: null,
+  enabled: false,
+  status: "local",
+  hint: "Connect Supabase to share updates across computers and the live site.",
+  lastSerialized: "",
+  hasPendingWrite: false,
+  initialized: false,
+  pollId: null,
+  writeTimerId: null,
+};
 
 const ownershipConfig = {
   owned: "Already Owned",
@@ -546,7 +569,7 @@ function normalizeLab(rawLab, override = null) {
   return merged;
 }
 
-function loadLabs() {
+function loadLocalLabs() {
   try {
     const saved = window.localStorage.getItem(storageKey);
     if (!saved) return defaultLabs.map((lab) => normalizeLab(lab));
@@ -569,7 +592,7 @@ function loadLabs() {
   }
 }
 
-const labs = loadLabs();
+const labs = loadLocalLabs();
 
 const state = {
   search: "",
@@ -581,6 +604,195 @@ const state = {
 };
 
 let countdownIntervalId = null;
+
+function serializeLabsForStorage(inputLabs) {
+  return JSON.stringify(inputLabs.map((lab) => normalizeLab(lab)));
+}
+
+function isCloudConfigured() {
+  return Boolean(
+    cloudConfig.supabaseUrl
+      && cloudConfig.supabaseAnonKey
+      && window.supabase?.createClient,
+  );
+}
+
+function setCloudStatus(status, label, hint) {
+  cloudState.status = status;
+  cloudState.hint = hint;
+
+  if (!cloudSyncStatus || !cloudSyncLabel || !cloudSyncHint) return;
+
+  cloudSyncStatus.classList.remove("is-online", "is-syncing", "is-error");
+  if (status === "online") cloudSyncStatus.classList.add("is-online");
+  if (status === "syncing") cloudSyncStatus.classList.add("is-syncing");
+  if (status === "error") cloudSyncStatus.classList.add("is-error");
+  cloudSyncLabel.textContent = label;
+  cloudSyncHint.textContent = hint;
+}
+
+function ensureSelectedLab() {
+  if (!labs.length) {
+    state.selectedId = null;
+    return;
+  }
+
+  if (!labs.some((lab) => lab.id === state.selectedId)) {
+    state.selectedId = labs[0].id;
+  }
+}
+
+function replaceLabs(nextLabs) {
+  labs.splice(0, labs.length, ...nextLabs.map((lab) => normalizeLab(lab)));
+  ensureSelectedLab();
+}
+
+function persistLocalLabs() {
+  const serialized = serializeLabsForStorage(labs);
+  window.localStorage.setItem(storageKey, serialized);
+  cloudState.lastSerialized = serialized;
+}
+
+async function saveLabsToCloud() {
+  if (!cloudState.enabled || !cloudState.client) return false;
+
+  cloudState.hasPendingWrite = false;
+  const serialized = serializeLabsForStorage(labs);
+  setCloudStatus("syncing", "Syncing to cloud...", "Saving shared tracker data for every device.");
+
+  const { error } = await cloudState.client
+    .from(cloudConfig.table)
+    .upsert(
+      {
+        workspace: cloudConfig.workspace,
+        labs: JSON.parse(serialized),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "workspace" },
+    );
+
+  if (error) {
+    console.error("Cloud sync failed:", error);
+    cloudState.hasPendingWrite = true;
+    setCloudStatus("error", "Cloud sync error", "Edits are still saved locally. Check your Supabase table, policies, and keys.");
+    return false;
+  }
+
+  cloudState.lastSerialized = serialized;
+  setCloudStatus("online", "Cloud sync connected", `Shared workspace "${cloudConfig.workspace}" is up to date.`);
+  return true;
+}
+
+function queueCloudSave({ immediate = false } = {}) {
+  if (!cloudState.enabled) return;
+
+  cloudState.hasPendingWrite = true;
+  if (cloudState.writeTimerId) {
+    window.clearTimeout(cloudState.writeTimerId);
+    cloudState.writeTimerId = null;
+  }
+
+  const runSave = () => {
+    cloudState.writeTimerId = null;
+    void saveLabsToCloud();
+  };
+
+  if (immediate) {
+    runSave();
+    return;
+  }
+
+  setCloudStatus("syncing", "Changes pending sync", "Saving to the shared workspace in a moment...");
+  cloudState.writeTimerId = window.setTimeout(runSave, 500);
+}
+
+async function fetchLabsFromCloud() {
+  if (!cloudState.enabled || !cloudState.client || cloudState.hasPendingWrite) return false;
+
+  const { data, error } = await cloudState.client
+    .from(cloudConfig.table)
+    .select("labs, updated_at")
+    .eq("workspace", cloudConfig.workspace)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Cloud load failed:", error);
+    setCloudStatus("error", "Cloud sync error", "Using local data until the shared workspace can be reached.");
+    return false;
+  }
+
+  if (!data?.labs) {
+    setCloudStatus("syncing", "Creating cloud workspace...", "Publishing the current tracker state for shared use.");
+    return saveLabsToCloud();
+  }
+
+  const remoteLabs = Array.isArray(data.labs) ? data.labs.map((lab) => normalizeLab(lab)) : [];
+  const remoteSerialized = serializeLabsForStorage(remoteLabs);
+  if (remoteSerialized !== cloudState.lastSerialized) {
+    replaceLabs(remoteLabs);
+    persistLocalLabs();
+    updateStats();
+    render();
+  }
+
+  setCloudStatus("online", "Cloud sync connected", `Shared workspace "${cloudConfig.workspace}" is up to date.`);
+  return true;
+}
+
+function startCloudPolling() {
+  if (!cloudState.enabled || cloudState.pollId) return;
+
+  cloudState.pollId = window.setInterval(() => {
+    void fetchLabsFromCloud();
+  }, cloudConfig.syncIntervalMs);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void fetchLabsFromCloud();
+    }
+  });
+
+  window.addEventListener("online", () => {
+    void fetchLabsFromCloud();
+  });
+}
+
+async function initializeCloudSync() {
+  persistLocalLabs();
+
+  if (!isCloudConfigured()) {
+    const missingPieces = [];
+    if (!cloudConfig.supabaseUrl) missingPieces.push("Supabase URL");
+    if (!cloudConfig.supabaseAnonKey) missingPieces.push("anon key");
+    if (!window.supabase?.createClient) missingPieces.push("Supabase client library");
+
+    setCloudStatus(
+      "local",
+      "Local only",
+      missingPieces.length
+        ? `Add ${missingPieces.join(", ")} in config.js to share changes online.`
+        : "Connect Supabase to share updates across computers and the live site.",
+    );
+    cloudState.initialized = true;
+    return;
+  }
+
+  cloudState.client = window.supabase.createClient(
+    cloudConfig.supabaseUrl,
+    cloudConfig.supabaseAnonKey,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
+  cloudState.enabled = true;
+
+  await fetchLabsFromCloud();
+  startCloudPolling();
+  cloudState.initialized = true;
+}
 
 function animateDetailPanel() {
   detailPanel.classList.remove("is-transitioning");
@@ -596,8 +808,9 @@ function updateTopContextState() {
   document.body.classList.toggle("top-condensed", window.scrollY > 120);
 }
 
-function persistLabs() {
-  window.localStorage.setItem(storageKey, JSON.stringify(labs));
+function persistLabs(options = {}) {
+  persistLocalLabs();
+  queueCloudSave(options);
 }
 
 function persistPresentationMode() {
@@ -1480,7 +1693,7 @@ function renderEquipment(selectedLab) {
 
     select.addEventListener("change", (event) => {
       selectedLab.equipment[index].ownership = event.target.value;
-      persistLabs();
+      persistLabs({ immediate: true });
       render();
     });
 
@@ -1651,7 +1864,7 @@ detailStatusSelect.addEventListener("change", (event) => {
   if (!selectedLab) return;
 
   selectedLab.status = event.target.value;
-  persistLabs();
+  persistLabs({ immediate: true });
   updateStats();
   render();
 });
@@ -1678,7 +1891,7 @@ saveLabNameBtn.addEventListener("click", () => {
 
   lab.name = nextName;
   lab.shortName = nextName.length > 24 ? nextName.slice(0, 24).trim() : nextName;
-  persistLabs();
+  persistLabs({ immediate: true });
   setEditorFeedback(`Updated lab name to ${nextName}.`);
   render();
 });
@@ -1694,7 +1907,7 @@ addEquipmentBtn.addEventListener("click", () => {
 
   lab.equipment.push({ name: equipmentName, ownership: "investigate" });
   newEquipmentInput.value = "";
-  persistLabs();
+  persistLabs({ immediate: true });
   setEditorFeedback(`Added equipment to ${lab.shortName || lab.name}.`);
   render();
 });
@@ -1735,7 +1948,7 @@ addLabBtn.addEventListener("click", () => {
   labs.push(newLab);
   state.selectedId = newLab.id;
   newLabNameInput.value = "";
-  persistLabs();
+  persistLabs({ immediate: true });
   updateStats();
   setEditorFeedback(`Added ${name} and selected it for editing.`);
   render();
@@ -1751,7 +1964,7 @@ saveSqftBtn.addEventListener("click", () => {
   }
 
   lab.squareFeet = area;
-  persistLabs();
+  persistLabs({ immediate: true });
   updateStats();
   setEditorFeedback(`Saved ${area.toLocaleString()} square feet for ${lab.shortName || lab.name}.`);
   render();
@@ -1845,5 +2058,6 @@ createStatusFilters();
 render();
 updateTopContextState();
 startKjCountdown();
+void initializeCloudSync();
 
 window.addEventListener("scroll", updateTopContextState, { passive: true });

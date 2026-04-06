@@ -636,6 +636,41 @@ button:hover,
   line-height: 1.5;
 }
 
+.cloud-sync-status {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(23, 71, 106, 0.08);
+  border: 1px solid rgba(23, 71, 106, 0.12);
+}
+
+.cloud-sync-status strong {
+  font-size: 0.92rem;
+}
+
+.cloud-sync-status span {
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.cloud-sync-status.is-online {
+  background: rgba(79, 150, 96, 0.12);
+  border-color: rgba(79, 150, 96, 0.22);
+}
+
+.cloud-sync-status.is-syncing {
+  background: rgba(181, 122, 24, 0.12);
+  border-color: rgba(181, 122, 24, 0.24);
+}
+
+.cloud-sync-status.is-error {
+  background: rgba(143, 74, 53, 0.12);
+  border-color: rgba(143, 74, 53, 0.26);
+}
+
 .toolbar-actions {
   display: flex;
   gap: 10px;
