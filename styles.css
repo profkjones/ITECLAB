@@ -695,6 +695,12 @@ button:hover,
   box-shadow: 0 8px 18px rgba(24, 33, 39, 0.06);
 }
 
+.toolbar-actions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
 .kj-toggle {
   display: none;
   min-width: 44px;

@@ -496,6 +496,7 @@ const buildingImpactInput = document.getElementById("buildingImpactInput");
 const cloudSyncStatus = document.getElementById("cloudSyncStatus");
 const cloudSyncLabel = document.getElementById("cloudSyncLabel");
 const cloudSyncHint = document.getElementById("cloudSyncHint");
+const syncNowBtn = document.getElementById("syncNowBtn");
 
 const cloudConfig = {
   supabaseUrl: window.ITECLAB_CONFIG?.supabaseUrl || "",
@@ -629,6 +630,11 @@ function setCloudStatus(status, label, hint) {
   if (status === "error") cloudSyncStatus.classList.add("is-error");
   cloudSyncLabel.textContent = label;
   cloudSyncHint.textContent = hint;
+
+  if (syncNowBtn) {
+    syncNowBtn.disabled = status === "syncing";
+    syncNowBtn.textContent = status === "syncing" ? "Syncing..." : "Sync Now";
+  }
 }
 
 function ensureSelectedLab() {
@@ -792,6 +798,26 @@ async function initializeCloudSync() {
   await fetchLabsFromCloud();
   startCloudPolling();
   cloudState.initialized = true;
+}
+
+async function forceCloudSync() {
+  if (!isCloudConfigured()) {
+    setCloudStatus(
+      "local",
+      "Local only",
+      "This page is not loading config.js yet, so it cannot sync. Refresh after the latest site files are deployed.",
+    );
+    return false;
+  }
+
+  if (!cloudState.enabled) {
+    await initializeCloudSync();
+  }
+
+  persistLocalLabs();
+  const saveWorked = await saveLabsToCloud();
+  if (!saveWorked) return false;
+  return fetchLabsFromCloud();
 }
 
 function animateDetailPanel() {
@@ -2012,6 +2038,12 @@ topWorkingModeBtn.addEventListener("click", () => {
   persistPresentationMode();
   render();
 });
+
+if (syncNowBtn) {
+  syncNowBtn.addEventListener("click", () => {
+    void forceCloudSync();
+  });
+}
 
 if (kjModeBtn) {
   kjModeBtn.addEventListener("click", () => {
