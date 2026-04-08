@@ -502,6 +502,11 @@ const prioritySelect = document.getElementById("prioritySelect");
 const phaseSelect = document.getElementById("phaseSelect");
 const sharedUseInput = document.getElementById("sharedUseInput");
 const buildingImpactInput = document.getElementById("buildingImpactInput");
+const referenceImageInput = document.getElementById("referenceImageInput");
+const removeReferenceImageBtn = document.getElementById("removeReferenceImageBtn");
+const referenceImageStatus = document.getElementById("referenceImageStatus");
+const referenceImagePreview = document.getElementById("referenceImagePreview");
+const referenceImagePreviewImg = document.getElementById("referenceImagePreviewImg");
 const cloudSyncStatus = document.getElementById("cloudSyncStatus");
 const cloudSyncLabel = document.getElementById("cloudSyncLabel");
 const cloudSyncHint = document.getElementById("cloudSyncHint");
@@ -570,6 +575,8 @@ function normalizeLab(rawLab, override = null) {
   merged.phase = merged.phase || "phase-1";
   merged.sharedUse = merged.sharedUse || "";
   merged.buildingImpact = merged.buildingImpact || "";
+  merged.referenceImage = merged.referenceImage || "";
+  merged.referenceImageName = merged.referenceImageName || "";
   merged.visual = merged.visual || "data";
   merged.summary = merged.summary || "New lab entry added during working mode planning.";
   merged.outlook = merged.outlook || "Needs planning review";
@@ -1309,6 +1316,51 @@ function updateSelectedLabPlanningField(field, value) {
   renderDetailPanel();
 }
 
+function setReferenceImageFeedback(message) {
+  if (referenceImageStatus) {
+    referenceImageStatus.textContent = message;
+  }
+  setEditorFeedback(message);
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Image file could not be read."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Image preview could not be loaded."));
+    image.src = src;
+  });
+}
+
+async function compressReferenceImage(file) {
+  const source = await loadImageFromFile(file);
+  const image = await loadImageElement(source);
+  const maxDimension = 1200;
+  const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Image processing is not available in this browser.");
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
 function downloadFile(filename, content, type) {
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
@@ -1381,6 +1433,18 @@ function exportCurrentLabPdf() {
   const buildingImpactMarkup = lab.buildingImpact
     ? `<p>${escapeHtml(lab.buildingImpact).replace(/\n/g, "<br />")}</p>`
     : `<p class="muted">Not added yet.</p>`;
+  const referenceImageMarkup = lab.referenceImage
+    ? `
+      <section>
+        <h2>Concept Image</h2>
+        <img
+          src="${lab.referenceImage}"
+          alt="${escapeHtml(lab.referenceImageName || `${lab.name} concept image`)}"
+          style="display:block; max-width:100%; max-height:320px; border-radius:16px; margin-top:12px; object-fit:cover;"
+        />
+      </section>
+    `
+    : "";
   const html = `
 <!doctype html>
 <html lang="en">
@@ -1421,6 +1485,7 @@ function exportCurrentLabPdf() {
       <h2>Building Impacts</h2>
       ${buildingImpactMarkup}
     </section>
+    ${referenceImageMarkup}
     <section>
       <h2>Equipment</h2>
       <table>
@@ -1864,10 +1929,18 @@ function renderDetailPanel() {
     selectedLabNameInput.disabled = true;
     newEquipmentInput.value = "";
     newEquipmentInput.disabled = true;
+    if (referenceImageInput) referenceImageInput.value = "";
+    if (referenceImageStatus) referenceImageStatus.textContent = "No reference image added yet.";
+    if (referenceImagePreview) referenceImagePreview.hidden = true;
+    if (referenceImagePreviewImg) {
+      referenceImagePreviewImg.removeAttribute("src");
+      referenceImagePreviewImg.alt = "Reference image preview";
+    }
     saveLabNameBtn.disabled = true;
     deleteLabBtn.disabled = true;
     addEquipmentBtn.disabled = true;
     saveSqftBtn.disabled = true;
+    if (removeReferenceImageBtn) removeReferenceImageBtn.disabled = true;
     sqftFlatInput.value = "";
     ownerLeadInput.value = "";
     nextStepInput.value = "";
@@ -1929,6 +2002,12 @@ function renderDetailPanel() {
       <span class="presentation-brief-label">Facility Implications</span>
       <p>${selectedLab.buildingImpact || "Capture power, ventilation, network, security, water, or floor-loading needs in Working Mode for this lab."}</p>
     </article>
+    <article class="presentation-narrative-card reference-vision-card${selectedLab.referenceImage ? " has-image" : ""}">
+      <span class="presentation-brief-label">Concept Image</span>
+      ${selectedLab.referenceImage
+        ? `<img src="${selectedLab.referenceImage}" alt="${escapeHtml(selectedLab.referenceImageName || `${selectedLab.name} concept image`)}" class="presentation-reference-image" />`
+        : `<p>Add a reference image in Working Mode to show the room vision during presentations.</p>`}
+    </article>
   `;
   kjPlanningHud.innerHTML = `
     <article class="kj-plan-card">
@@ -1974,6 +2053,8 @@ function renderDetailPanel() {
   phaseSelect.disabled = false;
   sharedUseInput.disabled = false;
   buildingImpactInput.disabled = false;
+  if (referenceImageInput) referenceImageInput.disabled = false;
+  if (removeReferenceImageBtn) removeReferenceImageBtn.disabled = !selectedLab.referenceImage;
   selectedLabNameInput.value = selectedLab.name;
   sqftFlatInput.value = selectedLab.squareFeet || "";
   ownerLeadInput.value = selectedLab.ownerLead;
@@ -1982,6 +2063,22 @@ function renderDetailPanel() {
   phaseSelect.value = selectedLab.phase;
   sharedUseInput.value = selectedLab.sharedUse;
   buildingImpactInput.value = selectedLab.buildingImpact;
+  if (referenceImageInput) referenceImageInput.value = "";
+  if (referenceImageStatus) {
+    referenceImageStatus.textContent = selectedLab.referenceImage
+      ? `Reference image ready${selectedLab.referenceImageName ? `: ${selectedLab.referenceImageName}` : "."}`
+      : "No reference image added yet.";
+  }
+  if (referenceImagePreview && referenceImagePreviewImg) {
+    referenceImagePreview.hidden = !selectedLab.referenceImage;
+    if (selectedLab.referenceImage) {
+      referenceImagePreviewImg.src = selectedLab.referenceImage;
+      referenceImagePreviewImg.alt = selectedLab.referenceImageName || `${selectedLab.name} reference image`;
+    } else {
+      referenceImagePreviewImg.removeAttribute("src");
+      referenceImagePreviewImg.alt = "Reference image preview";
+    }
+  }
   sqftResult.textContent = selectedLab.squareFeet
     ? `Saved for ${selectedLab.shortName || selectedLab.name}: ${selectedLab.squareFeet.toLocaleString()} square feet`
     : "Enter a square footage value for the selected lab.";
@@ -2159,6 +2256,8 @@ addLabBtn.addEventListener("click", () => {
     phase: "phase-1",
     sharedUse: "",
     buildingImpact: "",
+    referenceImage: "",
+    referenceImageName: "",
     equipment: [],
     space: [],
     notes: ["Added in working mode. Update summary, space needs, and planning notes as decisions become clearer."],
@@ -2226,6 +2325,57 @@ buildingImpactInput.addEventListener("input", (event) => {
   setActiveDetailSection("planning");
   updateSelectedLabPlanningField("buildingImpact", event.target.value);
 });
+
+if (referenceImageInput) {
+  referenceImageInput.addEventListener("change", async (event) => {
+    setActiveDetailSection("planning");
+    const lab = labs.find((item) => item.id === state.selectedId);
+    const [file] = Array.from(event.target.files || []);
+
+    if (!lab || !file) {
+      setReferenceImageFeedback("Choose a lab and an image before uploading.");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      event.target.value = "";
+      setReferenceImageFeedback("Please choose an image file.");
+      return;
+    }
+
+    try {
+      setReferenceImageFeedback("Compressing image for this lab...");
+      const compressedImage = await compressReferenceImage(file);
+      lab.referenceImage = compressedImage;
+      lab.referenceImageName = file.name;
+      persistLabs({ immediate: true });
+      renderDetailPanel();
+      setReferenceImageFeedback(`Saved reference image for ${lab.shortName || lab.name}.`);
+    } catch (error) {
+      console.error(error);
+      setReferenceImageFeedback("That image could not be processed. Try a smaller JPG or PNG.");
+    } finally {
+      event.target.value = "";
+    }
+  });
+}
+
+if (removeReferenceImageBtn) {
+  removeReferenceImageBtn.addEventListener("click", () => {
+    setActiveDetailSection("planning");
+    const lab = labs.find((item) => item.id === state.selectedId);
+    if (!lab || !lab.referenceImage) {
+      setReferenceImageFeedback("There is no reference image to remove for this lab.");
+      return;
+    }
+
+    lab.referenceImage = "";
+    lab.referenceImageName = "";
+    persistLabs({ immediate: true });
+    renderDetailPanel();
+    setReferenceImageFeedback(`Removed the reference image from ${lab.shortName || lab.name}.`);
+  });
+}
 
 presentationToggleBtn.addEventListener("click", () => {
   state.presentationMode = !state.presentationMode;

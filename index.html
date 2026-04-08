@@ -381,6 +381,23 @@
                 placeholder="List building needs like power, ventilation, network, security, floor loading, water, etc."
               ></textarea>
             </div>
+
+            <div class="editor-card">
+              <label for="referenceImageInput">Concept Image</label>
+              <p class="editor-help">
+                Upload a small inspiration image for this lab so Presentation Mode can show what the room could look like.
+              </p>
+              <div class="reference-image-controls">
+                <input id="referenceImageInput" type="file" accept="image/*" />
+                <button id="removeReferenceImageBtn" class="ghost" type="button">Remove Image</button>
+              </div>
+              <p id="referenceImageStatus" class="editor-help reference-image-status" aria-live="polite">
+                No reference image added yet.
+              </p>
+              <div class="reference-image-preview" id="referenceImagePreview" hidden>
+                <img id="referenceImagePreviewImg" alt="Reference image preview" />
+              </div>
+            </div>
           </section>
 
           <section class="detail-section working-editor-section" data-detail-section="editor">
