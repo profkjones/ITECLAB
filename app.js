@@ -440,6 +440,9 @@ const kjPlanningHud = document.getElementById("kjPlanningHud");
 const detailStatusSelect = document.getElementById("detailStatusSelect");
 const detailStatusValue = document.getElementById("detailStatusValue");
 const detailPanel = document.getElementById("detailPanel");
+const detailSectionNav = document.getElementById("detailSectionNav");
+const detailSectionTabs = Array.from(document.querySelectorAll(".detail-section-tab"));
+const detailSections = Array.from(document.querySelectorAll(".detail-section[data-detail-section]"));
 const detailOutlook = document.getElementById("detailOutlook");
 const detailEquipment = document.getElementById("detailEquipment");
 const equipmentSummary = document.getElementById("equipmentSummary");
@@ -474,6 +477,7 @@ const kjCoverageBars = document.getElementById("kjCoverageBars");
 const kjTelemetryBar = document.getElementById("kjTelemetryBar");
 const selectedLabNameInput = document.getElementById("selectedLabNameInput");
 const saveLabNameBtn = document.getElementById("saveLabNameBtn");
+const deleteLabBtn = document.getElementById("deleteLabBtn");
 const newEquipmentInput = document.getElementById("newEquipmentInput");
 const addEquipmentBtn = document.getElementById("addEquipmentBtn");
 const newLabNameInput = document.getElementById("newLabNameInput");
@@ -485,6 +489,9 @@ const saveSqftBtn = document.getElementById("saveSqftBtn");
 const sqftResult = document.getElementById("sqftResult");
 const totalSquareFootageValue = document.getElementById("totalSquareFootageValue");
 const totalSquareFootageNote = document.getElementById("totalSquareFootageNote");
+const workingModeBanner = document.getElementById("workingModeBanner");
+const workingModeBannerTitle = document.getElementById("workingModeBannerTitle");
+const workingModeBannerMeta = document.getElementById("workingModeBannerMeta");
 const leadershipStrip = document.getElementById("leadershipStrip");
 const planningOverview = document.getElementById("planningOverview");
 const ownerLeadInput = document.getElementById("ownerLeadInput");
@@ -570,35 +577,59 @@ function normalizeLab(rawLab, override = null) {
   return merged;
 }
 
-function loadLocalLabs() {
-  try {
-    const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return defaultLabs.map((lab) => normalizeLab(lab));
+function defaultLabIds() {
+  return new Set(defaultLabs.map((lab) => lab.id));
+}
 
-    const parsed = JSON.parse(saved);
-    if (!Array.isArray(parsed)) return defaultLabs.map((lab) => normalizeLab(lab));
+function materializeLabs(savedLabs) {
+  const knownDefaultIds = defaultLabIds();
+  const savedArray = Array.isArray(savedLabs) ? savedLabs : [];
+  const deletedDefaultIds = new Set(
+    savedArray
+      .filter((item) => item?.deleted && knownDefaultIds.has(item.id))
+      .map((item) => item.id),
+  );
 
-    const mergedDefaults = defaultLabs.map((lab) => {
-      const override = parsed.find((item) => item.id === lab.id);
+  const mergedDefaults = defaultLabs
+    .filter((lab) => !deletedDefaultIds.has(lab.id))
+    .map((lab) => {
+      const override = savedArray.find((item) => item.id === lab.id && !item.deleted);
       return normalizeLab(lab, override);
     });
 
-    const customLabs = parsed
-      .filter((savedLab) => !defaultLabs.some((lab) => lab.id === savedLab.id))
-      .map((lab) => normalizeLab(lab));
+  const customLabs = savedArray
+    .filter((savedLab) => !savedLab?.deleted && !knownDefaultIds.has(savedLab.id))
+    .map((lab) => normalizeLab(lab));
 
-    return [...mergedDefaults, ...customLabs];
+  return {
+    labs: [...mergedDefaults, ...customLabs],
+    deletedDefaultIds,
+  };
+}
+
+function loadLocalLabs() {
+  try {
+    const saved = window.localStorage.getItem(storageKey);
+    if (!saved) return materializeLabs(defaultLabs);
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return materializeLabs(defaultLabs);
+
+    return materializeLabs(parsed);
   } catch {
-    return defaultLabs.map((lab) => normalizeLab(lab));
+    return materializeLabs(defaultLabs);
   }
 }
 
-const labs = loadLocalLabs();
+const loadedState = loadLocalLabs();
+const labs = loadedState.labs;
+const deletedDefaultLabIds = loadedState.deletedDefaultIds;
 
 const state = {
   search: "",
   status: "all",
   selectedId: labs[0]?.id ?? null,
+  detailSection: "editor",
   presentationMode: window.localStorage.getItem(presentationKey) !== "false",
   futureSkin: window.localStorage.getItem(futureSkinKey) === "true",
   lastRenderedSelectedId: null,
@@ -606,8 +637,10 @@ const state = {
 
 let countdownIntervalId = null;
 
-function serializeLabsForStorage(inputLabs) {
-  return JSON.stringify(inputLabs.map((lab) => normalizeLab(lab)));
+function serializeLabsForStorage(inputLabs, deletedDefaultIds = deletedDefaultLabIds) {
+  const serializedLabs = inputLabs.map((lab) => normalizeLab(lab));
+  const deletedDefaults = Array.from(deletedDefaultIds).map((id) => ({ id, deleted: true }));
+  return JSON.stringify([...serializedLabs, ...deletedDefaults]);
 }
 
 function isCloudConfigured() {
@@ -648,8 +681,14 @@ function ensureSelectedLab() {
   }
 }
 
-function replaceLabs(nextLabs) {
+function replaceDeletedDefaultLabIds(nextIds) {
+  deletedDefaultLabIds.clear();
+  nextIds.forEach((id) => deletedDefaultLabIds.add(id));
+}
+
+function replaceLabs(nextLabs, nextDeletedDefaultIds = deletedDefaultLabIds) {
   labs.splice(0, labs.length, ...nextLabs.map((lab) => normalizeLab(lab)));
+  replaceDeletedDefaultLabIds(nextDeletedDefaultIds);
   ensureSelectedLab();
 }
 
@@ -732,10 +771,10 @@ async function fetchLabsFromCloud() {
     return saveLabsToCloud();
   }
 
-  const remoteLabs = Array.isArray(data.labs) ? data.labs.map((lab) => normalizeLab(lab)) : [];
-  const remoteSerialized = serializeLabsForStorage(remoteLabs);
+  const remoteState = materializeLabs(data.labs);
+  const remoteSerialized = serializeLabsForStorage(remoteState.labs, remoteState.deletedDefaultIds);
   if (remoteSerialized !== cloudState.lastSerialized) {
-    replaceLabs(remoteLabs);
+    replaceLabs(remoteState.labs, remoteState.deletedDefaultIds);
     persistLocalLabs();
     updateStats();
     render();
@@ -834,6 +873,15 @@ function updateTopContextState() {
   document.body.classList.toggle("top-condensed", window.scrollY > 120);
 }
 
+function validDetailSections() {
+  return new Set(detailSections.map((section) => section.dataset.detailSection).filter(Boolean));
+}
+
+function setActiveDetailSection(nextSection) {
+  if (!validDetailSections().has(nextSection)) return;
+  state.detailSection = nextSection;
+}
+
 function persistLabs(options = {}) {
   persistLocalLabs();
   queueCloudSave(options);
@@ -885,6 +933,10 @@ function parseSquareFootageInput() {
 
   sqftResult.textContent = `${area.toLocaleString()} square feet ready to save`;
   return area;
+}
+
+function isDefaultLab(labId) {
+  return defaultLabs.some((lab) => lab.id === labId);
 }
 
 function totalSquareFootage() {
@@ -1426,6 +1478,8 @@ function updateStats() {
 }
 
 function createStatusFilters() {
+  if (!statusFilters) return;
+
   Object.entries(statusConfig).forEach(([status, config]) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -1463,10 +1517,12 @@ function filteredLabs() {
 }
 
 function renderStatusFilterState() {
-  Array.from(statusFilters.children).forEach((button, index) => {
-    const key = Object.keys(statusConfig)[index];
-    button.classList.toggle("active", key === state.status);
-  });
+  if (statusFilters) {
+    Array.from(statusFilters.children).forEach((button, index) => {
+      const key = Object.keys(statusConfig)[index];
+      button.classList.toggle("active", key === state.status);
+    });
+  }
 
   statCards.forEach((card) => {
     card.classList.toggle("active", card.dataset.status === state.status);
@@ -1475,8 +1531,8 @@ function renderStatusFilterState() {
 
 function clearSearch() {
   state.search = "";
-  searchInput.value = "";
-  toolbarSearchInput.value = "";
+  if (searchInput) searchInput.value = "";
+  if (toolbarSearchInput) toolbarSearchInput.value = "";
 }
 
 function renderWorkingModeSummary() {
@@ -1502,6 +1558,45 @@ function renderWorkingModeSummary() {
   totalSquareFootageNote.textContent = countedLabs
     ? `${countedLabs} lab${countedLabs === 1 ? "" : "s"} currently included in the total.`
     : "Save square footage to each lab in Working Mode to build the total.";
+}
+
+function renderWorkingModeBanner() {
+  if (!workingModeBanner || !workingModeBannerTitle || !workingModeBannerMeta) return;
+
+  const selected = selectedLab();
+  const visibleLabs = filteredLabs();
+  const filterLabel = statusConfig[state.status]?.label ?? "All Labs";
+
+  workingModeBanner.setAttribute("aria-hidden", String(state.presentationMode));
+  workingModeBannerTitle.textContent = selected
+    ? `Working on ${selected.name}`
+    : "Select a lab to begin editing";
+  workingModeBannerMeta.innerHTML = `
+    <span class="working-mode-banner-pill">${selected ? `Selected: ${selected.shortName || selected.name}` : "No lab selected"}</span>
+    <span class="working-mode-banner-pill">${visibleLabs.length} visible</span>
+    <span class="working-mode-banner-pill">${filterLabel}</span>
+  `;
+}
+
+function renderDetailSectionState() {
+  const activeSection = validDetailSections().has(state.detailSection) ? state.detailSection : "editor";
+
+  if (detailSectionNav) {
+    detailSectionNav.setAttribute("aria-hidden", String(state.presentationMode));
+  }
+
+  detailSectionTabs.forEach((button) => {
+    const isActive = button.dataset.section === activeSection;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  detailSections.forEach((section) => {
+    section.classList.toggle(
+      "is-collapsed",
+      !state.presentationMode && section.dataset.detailSection !== activeSection,
+    );
+  });
 }
 
 function renderReadinessDots(items) {
@@ -1754,6 +1849,7 @@ function renderDetailPanel() {
     newEquipmentInput.value = "";
     newEquipmentInput.disabled = true;
     saveLabNameBtn.disabled = true;
+    deleteLabBtn.disabled = true;
     addEquipmentBtn.disabled = true;
     saveSqftBtn.disabled = true;
     sqftFlatInput.value = "";
@@ -1823,6 +1919,7 @@ function renderDetailPanel() {
   selectedLabNameInput.disabled = false;
   newEquipmentInput.disabled = false;
   saveLabNameBtn.disabled = false;
+  deleteLabBtn.disabled = false;
   addEquipmentBtn.disabled = false;
   saveSqftBtn.disabled = false;
   ownerLeadInput.disabled = false;
@@ -1863,27 +1960,33 @@ function render() {
   }
   renderStatusFilterState();
   renderWorkingModeSummary();
+  renderWorkingModeBanner();
   renderLeadershipSummary();
   renderKjHud();
   renderLabGrid();
   renderDetailPanel();
+  renderDetailSectionState();
   if (selectedChanged && state.lastRenderedSelectedId !== null) {
     animateDetailPanel();
   }
   state.lastRenderedSelectedId = state.selectedId;
 }
 
-searchInput.addEventListener("input", (event) => {
-  state.search = event.target.value;
-  toolbarSearchInput.value = state.search;
-  render();
-});
+if (searchInput) {
+  searchInput.addEventListener("input", (event) => {
+    state.search = event.target.value;
+    if (toolbarSearchInput) toolbarSearchInput.value = state.search;
+    render();
+  });
+}
 
-toolbarSearchInput.addEventListener("input", (event) => {
-  state.search = event.target.value;
-  searchInput.value = state.search;
-  render();
-});
+if (toolbarSearchInput) {
+  toolbarSearchInput.addEventListener("input", (event) => {
+    state.search = event.target.value;
+    if (searchInput) searchInput.value = state.search;
+    render();
+  });
+}
 
 detailStatusSelect.addEventListener("change", (event) => {
   const selectedLab = labs.find((lab) => lab.id === state.selectedId);
@@ -1893,6 +1996,13 @@ detailStatusSelect.addEventListener("change", (event) => {
   persistLabs({ immediate: true });
   updateStats();
   render();
+});
+
+detailSectionTabs.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveDetailSection(button.dataset.section);
+    renderDetailSectionState();
+  });
 });
 
 showAllBtn.addEventListener("click", () => {
@@ -1907,6 +2017,7 @@ clearSearchBtn.addEventListener("click", () => {
 });
 
 saveLabNameBtn.addEventListener("click", () => {
+  setActiveDetailSection("editor");
   const lab = labs.find((item) => item.id === state.selectedId);
   const nextName = selectedLabNameInput.value.trim();
 
@@ -1922,7 +2033,42 @@ saveLabNameBtn.addEventListener("click", () => {
   render();
 });
 
+deleteLabBtn.addEventListener("click", () => {
+  setActiveDetailSection("editor");
+  const lab = labs.find((item) => item.id === state.selectedId);
+  if (!lab) {
+    setEditorFeedback("Choose a lab before trying to delete it.");
+    return;
+  }
+
+  const confirmed = window.confirm(`Delete ${lab.name} from the tracker?`);
+  if (!confirmed) {
+    setEditorFeedback(`Kept ${lab.shortName || lab.name} in the tracker.`);
+    return;
+  }
+
+  const visibleLabs = filteredLabs();
+  const visibleIndex = visibleLabs.findIndex((item) => item.id === lab.id);
+  const labIndex = labs.findIndex((item) => item.id === lab.id);
+  if (labIndex === -1) return;
+
+  labs.splice(labIndex, 1);
+  if (isDefaultLab(lab.id)) {
+    deletedDefaultLabIds.add(lab.id);
+  }
+
+  const remainingVisible = visibleLabs.filter((item) => item.id !== lab.id);
+  const fallbackVisibleLab = remainingVisible[visibleIndex] || remainingVisible[visibleIndex - 1] || remainingVisible[0];
+  state.selectedId = fallbackVisibleLab?.id || labs[0]?.id || null;
+
+  persistLabs({ immediate: true });
+  updateStats();
+  setEditorFeedback(`Removed ${lab.name} from the tracker.`);
+  render();
+});
+
 addEquipmentBtn.addEventListener("click", () => {
+  setActiveDetailSection("equipment");
   const lab = labs.find((item) => item.id === state.selectedId);
   const equipmentName = newEquipmentInput.value.trim();
 
@@ -1939,6 +2085,7 @@ addEquipmentBtn.addEventListener("click", () => {
 });
 
 addLabBtn.addEventListener("click", () => {
+  setActiveDetailSection("editor");
   const name = newLabNameInput.value.trim();
   const status = newLabStatusSelect.value;
 
@@ -1981,6 +2128,7 @@ addLabBtn.addEventListener("click", () => {
 });
 
 saveSqftBtn.addEventListener("click", () => {
+  setActiveDetailSection("space");
   const lab = labs.find((item) => item.id === state.selectedId);
   const area = parseSquareFootageInput();
 
@@ -2004,26 +2152,32 @@ sqftFlatInput.addEventListener("keydown", (event) => {
 });
 
 ownerLeadInput.addEventListener("input", (event) => {
+  setActiveDetailSection("planning");
   updateSelectedLabPlanningField("ownerLead", event.target.value);
 });
 
 nextStepInput.addEventListener("input", (event) => {
+  setActiveDetailSection("planning");
   updateSelectedLabPlanningField("nextStep", event.target.value);
 });
 
 prioritySelect.addEventListener("change", (event) => {
+  setActiveDetailSection("planning");
   updateSelectedLabPlanningField("priority", event.target.value);
 });
 
 phaseSelect.addEventListener("change", (event) => {
+  setActiveDetailSection("planning");
   updateSelectedLabPlanningField("phase", event.target.value);
 });
 
 sharedUseInput.addEventListener("input", (event) => {
+  setActiveDetailSection("planning");
   updateSelectedLabPlanningField("sharedUse", event.target.value);
 });
 
 buildingImpactInput.addEventListener("input", (event) => {
+  setActiveDetailSection("planning");
   updateSelectedLabPlanningField("buildingImpact", event.target.value);
 });
 

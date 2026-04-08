@@ -73,32 +73,15 @@
         </article>
       </section>
 
+      <section class="panel working-mode-banner" id="workingModeBanner" aria-live="polite">
+        <div class="working-mode-banner-copy">
+          <span class="working-mode-banner-label">Sinclair Working Mode</span>
+          <strong id="workingModeBannerTitle">Select a lab to begin editing</strong>
+        </div>
+        <div class="working-mode-banner-meta" id="workingModeBannerMeta"></div>
+      </section>
+
       <section class="workspace">
-        <aside class="panel sidebar">
-          <div class="sidebar-block">
-            <label for="searchInput">Search labs</label>
-            <input
-              id="searchInput"
-              type="search"
-              placeholder="Robotics, HVAC, data, healthcare..."
-            />
-          </div>
-
-          <div class="sidebar-block">
-            <span class="field-label">Status filter</span>
-            <div class="chip-row" id="statusFilters"></div>
-          </div>
-
-          <div class="sidebar-block">
-            <span class="field-label">Planning notes</span>
-            <ul class="note-list">
-              <li>Statuses are a first pass based on the attached document.</li>
-              <li>Items marked new resource should be treated as build/program targets.</li>
-              <li>We can add owners, buildings, budgets, and move phases next.</li>
-            </ul>
-          </div>
-        </aside>
-
         <section class="content">
           <div class="panel toolbar">
             <div class="toolbar-copy">
@@ -113,6 +96,7 @@
               </div>
             </div>
             <div class="toolbar-search">
+              <label for="toolbarSearchInput" class="toolbar-search-label">Search Labs</label>
               <input
                 id="toolbarSearchInput"
                 type="search"
@@ -283,7 +267,15 @@
             </div>
           </div>
 
-          <section class="detail-section">
+          <div class="detail-section-nav" id="detailSectionNav" aria-label="Working mode sections">
+            <button class="detail-section-tab" data-section="editor" type="button">Editor</button>
+            <button class="detail-section-tab" data-section="planning" type="button">Planning</button>
+            <button class="detail-section-tab" data-section="equipment" type="button">Equipment</button>
+            <button class="detail-section-tab" data-section="space" type="button">Space + Sq Ft</button>
+            <button class="detail-section-tab" data-section="notes" type="button">Notes</button>
+          </div>
+
+          <section class="detail-section" data-detail-section="equipment">
             <h3>Equipment</h3>
             <div class="equipment-readiness" id="equipmentReadiness">
               <div class="readiness-head">
@@ -297,19 +289,41 @@
             <div class="equipment-summary" id="equipmentSummary"></div>
             <p id="equipmentOwnershipSummary" class="equipment-ownership-summary"></p>
             <div id="detailEquipment" class="equipment-list"></div>
+
+            <div class="editor-card">
+              <label for="newEquipmentInput">Add equipment to selected lab</label>
+              <div class="editor-inline">
+                <input id="newEquipmentInput" type="text" placeholder="Example: Training server rack" />
+                <button id="addEquipmentBtn" class="ghost" type="button">Add Equipment</button>
+              </div>
+            </div>
           </section>
 
-          <section class="detail-section">
+          <section class="detail-section" data-detail-section="space">
             <h3>Space Considerations</h3>
             <ul id="detailSpace" class="detail-list"></ul>
+
+            <div class="editor-card sqft-editor-card">
+              <label for="sqftFlatInput">Square Footage</label>
+              <p class="editor-help">
+                Save a single square footage number for the selected lab while the building layout is still being planned.
+              </p>
+              <div class="sqft-grid single">
+                <input id="sqftFlatInput" type="number" min="0" step="1" placeholder="Example: 1400" />
+              </div>
+              <div class="sqft-actions">
+                <button id="saveSqftBtn" class="primary-action" type="button">Save To Selected Lab</button>
+              </div>
+              <div class="sqft-result" id="sqftResult" aria-live="polite">Enter a square footage value for the selected lab.</div>
+            </div>
           </section>
 
-          <section class="detail-section">
+          <section class="detail-section" data-detail-section="notes">
             <h3>Planning Notes</h3>
             <ul id="detailNotes" class="detail-list"></ul>
           </section>
 
-          <section class="detail-section planning-framework-section">
+          <section class="detail-section planning-framework-section" data-detail-section="planning">
             <h3>Planning Framework</h3>
             <p class="editor-help">
               Working mode fields for leadership alignment, planning conversations, and build sequencing.
@@ -367,7 +381,7 @@
             </div>
           </section>
 
-          <section class="detail-section working-editor-section">
+          <section class="detail-section working-editor-section" data-detail-section="editor">
             <h3>Working Mode Editor</h3>
             <p class="editor-help">
               Add a new lab, rename the selected lab, or add equipment items while planning.
@@ -379,13 +393,11 @@
                 <input id="selectedLabNameInput" type="text" placeholder="Update selected lab name" />
                 <button id="saveLabNameBtn" class="ghost" type="button">Save Name</button>
               </div>
-            </div>
-
-            <div class="editor-card">
-              <label for="newEquipmentInput">Add equipment to selected lab</label>
-              <div class="editor-inline">
-                <input id="newEquipmentInput" type="text" placeholder="Example: Training server rack" />
-                <button id="addEquipmentBtn" class="ghost" type="button">Add Equipment</button>
+              <div class="editor-danger-row">
+                <button id="deleteLabBtn" class="danger-action" type="button">Delete Selected Lab</button>
+                <p class="editor-danger-note">
+                  Removes the selected lab from the tracker and keeps it removed after refresh.
+                </p>
               </div>
             </div>
 
@@ -400,20 +412,6 @@
                 </select>
                 <button id="addLabBtn" class="primary-action" type="button">Add Lab</button>
               </div>
-            </div>
-
-            <div class="editor-card sqft-editor-card">
-              <label for="sqftFlatInput">Square Footage</label>
-              <p class="editor-help">
-                Save a single square footage number for the selected lab while the building layout is still being planned.
-              </p>
-              <div class="sqft-grid single">
-                <input id="sqftFlatInput" type="number" min="0" step="1" placeholder="Example: 1400" />
-              </div>
-              <div class="sqft-actions">
-                <button id="saveSqftBtn" class="primary-action" type="button">Save To Selected Lab</button>
-              </div>
-              <div class="sqft-result" id="sqftResult" aria-live="polite">Enter a square footage value for the selected lab.</div>
             </div>
 
             <p id="editorFeedback" class="editor-feedback" aria-live="polite"></p>
