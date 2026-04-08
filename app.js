@@ -494,6 +494,8 @@ const workingModeBannerTitle = document.getElementById("workingModeBannerTitle")
 const workingModeBannerMeta = document.getElementById("workingModeBannerMeta");
 const leadershipStrip = document.getElementById("leadershipStrip");
 const planningOverview = document.getElementById("planningOverview");
+const presentationBriefGrid = document.getElementById("presentationBriefGrid");
+const presentationNarrative = document.getElementById("presentationNarrative");
 const ownerLeadInput = document.getElementById("ownerLeadInput");
 const nextStepInput = document.getElementById("nextStepInput");
 const prioritySelect = document.getElementById("prioritySelect");
@@ -1643,16 +1645,28 @@ function renderLabGrid() {
     card.innerHTML = state.presentationMode
       ? `
         <div class="lab-header">
-          <div class="lab-visual ${visual.className}" aria-hidden="true">${visual.emoji}</div>
-          <div class="lab-title-wrap">
-            <div class="lab-title">${lab.shortName || lab.name}</div>
-            <div
-              class="lab-readiness-dots"
-              aria-label="Equipment status: ${counts.owned} owned, ${counts.purchase} needing purchase, ${counts.investigate} needing confirmation"
-              title="Owned: ${counts.owned} | Needs purchase: ${counts.purchase} | Need to confirm: ${counts.investigate}"
-            >
-              ${renderReadinessDots(lab.equipment)}
+          <div class="lab-card-topline">
+            <span class="status-pill ${lab.status}">${statusConfig[lab.status].label}</span>
+            <span class="lab-phase-pill">${phaseLabel(lab.phase)}</span>
+          </div>
+          <div class="lab-presentation-main">
+            <div class="lab-visual ${visual.className}" aria-hidden="true">${visual.emoji}</div>
+            <div class="lab-title-wrap">
+              <div class="lab-title">${lab.shortName || lab.name}</div>
+              <p class="lab-presentation-summary">${lab.outlook}</p>
             </div>
+          </div>
+          <div
+            class="lab-readiness-dots"
+            aria-label="Equipment status: ${counts.owned} owned, ${counts.purchase} needing purchase, ${counts.investigate} needing confirmation"
+            title="Owned: ${counts.owned} | Needs purchase: ${counts.purchase} | Need to confirm: ${counts.investigate}"
+          >
+            ${renderReadinessDots(lab.equipment)}
+          </div>
+          <div class="lab-presentation-meta">
+            <span>${lab.ownerLead || "Owner needed"}</span>
+            <span>${lab.nextStep || "Next step needed"}</span>
+            <span>${(lab.squareFeet || 0).toLocaleString()} sq ft</span>
           </div>
         </div>
       `
@@ -1831,6 +1845,8 @@ function renderDetailPanel() {
     detailTitle.textContent = "Choose a lab";
     detailSummary.textContent = "Select a card to review its status, equipment list, and space requirements.";
     detailQuickStats.innerHTML = "";
+    presentationBriefGrid.innerHTML = "";
+    presentationNarrative.innerHTML = "";
     kjPlanningHud.innerHTML = "";
     detailStatusSelect.disabled = true;
     detailStatusSelect.innerHTML = `<option value="">No lab selected</option>`;
@@ -1886,6 +1902,33 @@ function renderDetailPanel() {
     ${squareFootageQuickStat}
     <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
     <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
+  `;
+  presentationBriefGrid.innerHTML = `
+    <article class="presentation-brief-card">
+      <span class="presentation-brief-label">Decision Status</span>
+      <strong>${statusConfig[selectedLab.status].label}</strong>
+      <p>${selectedLab.outlook}</p>
+    </article>
+    <article class="presentation-brief-card">
+      <span class="presentation-brief-label">Owner / Lead</span>
+      <strong>${selectedLab.ownerLead || "Assignment Needed"}</strong>
+      <p>${selectedLab.nextStep || "Define the next leadership action for this lab."}</p>
+    </article>
+    <article class="presentation-brief-card">
+      <span class="presentation-brief-label">Readiness Snapshot</span>
+      <strong>${selectedLab.equipment.length} equipment items</strong>
+      <p>${selectedLab.space.length} space considerations and ${(selectedLab.squareFeet || 0).toLocaleString()} square feet captured so far.</p>
+    </article>
+  `;
+  presentationNarrative.innerHTML = `
+    <article class="presentation-narrative-card emphasis">
+      <span class="presentation-brief-label">Leadership Talking Point</span>
+      <p>${selectedLab.sharedUse || "Add a shared-use note in Working Mode to strengthen the leadership story for this lab."}</p>
+    </article>
+    <article class="presentation-narrative-card">
+      <span class="presentation-brief-label">Facility Implications</span>
+      <p>${selectedLab.buildingImpact || "Capture power, ventilation, network, security, water, or floor-loading needs in Working Mode for this lab."}</p>
+    </article>
   `;
   kjPlanningHud.innerHTML = `
     <article class="kj-plan-card">
