@@ -629,7 +629,7 @@ const state = {
   search: "",
   status: "all",
   selectedId: labs[0]?.id ?? null,
-  detailSection: "editor",
+  detailSection: "planning",
   presentationMode: window.localStorage.getItem(presentationKey) !== "false",
   futureSkin: window.localStorage.getItem(futureSkinKey) === "true",
   lastRenderedSelectedId: null,
@@ -1875,12 +1875,15 @@ function renderDetailPanel() {
   detailSummary.textContent = state.presentationMode
     ? `${selectedLab.summary} ${selectedLab.outlook}.`
     : selectedLab.summary;
+  const squareFootageQuickStat = state.presentationMode
+    ? ""
+    : `<span class="quickstat-pill">${(selectedLab.squareFeet || 0).toLocaleString()} sq ft</span>`;
   detailQuickStats.innerHTML = `
     <span class="quickstat-pill status-${selectedLab.status}">${statusConfig[selectedLab.status].label}</span>
     <span class="quickstat-pill">${selectedLab.equipment.length} equipment items</span>
     <span class="quickstat-pill">${selectedLab.space.length} space needs</span>
     <span class="quickstat-pill">${selectedLab.notes.length} planning notes</span>
-    <span class="quickstat-pill">${(selectedLab.squareFeet || 0).toLocaleString()} sq ft</span>
+    ${squareFootageQuickStat}
     <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
     <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
   `;
