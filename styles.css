@@ -1244,6 +1244,10 @@ body.presentation-mode .sqft-editor-card {
   display: none;
 }
 
+body.presentation-mode .detail-section[data-detail-section="equipment"] .editor-card {
+  display: none;
+}
+
 body.presentation-mode .working-mode-strip,
 body.presentation-mode .working-mode-stat,
 body.presentation-mode .working-mode-leadership,
