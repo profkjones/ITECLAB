@@ -451,6 +451,7 @@ const equipmentReadinessValue = document.getElementById("equipmentReadinessValue
 const equipmentReadinessFill = document.getElementById("equipmentReadinessFill");
 const detailSpace = document.getElementById("detailSpace");
 const detailNotes = document.getElementById("detailNotes");
+const planningNotesInput = document.getElementById("planningNotesInput");
 const workingModeSummary = document.getElementById("workingModeSummary");
 const workingModeStrip = document.getElementById("workingModeStrip");
 const kjHud = document.getElementById("kjHud");
@@ -1306,6 +1307,23 @@ function startKjCountdown() {
   countdownIntervalId = window.setInterval(updateKjCountdown, 1000);
 }
 
+function renderDetailQuickStats(selectedLab) {
+  if (state.presentationMode) {
+    detailQuickStats.innerHTML = "";
+    return;
+  }
+
+  detailQuickStats.innerHTML = `
+    <span class="quickstat-pill status-${selectedLab.status}">${statusConfig[selectedLab.status].label}</span>
+    <span class="quickstat-pill">${selectedLab.equipment.length} equipment items</span>
+    <span class="quickstat-pill">${selectedLab.space.length} space needs</span>
+    <span class="quickstat-pill">${selectedLab.notes.length} planning notes</span>
+    <span class="quickstat-pill">${(selectedLab.squareFeet || 0).toLocaleString()} sq ft</span>
+    <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
+    <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
+  `;
+}
+
 function updateSelectedLabPlanningField(field, value) {
   const lab = labs.find((item) => item.id === state.selectedId);
   if (!lab) return;
@@ -1314,6 +1332,22 @@ function updateSelectedLabPlanningField(field, value) {
   renderWorkingModeSummary();
   renderLeadershipSummary();
   renderDetailPanel();
+}
+
+function updateSelectedLabNotes(value) {
+  const lab = labs.find((item) => item.id === state.selectedId);
+  if (!lab) return;
+
+  lab.notes = value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  persistLabs();
+  renderWorkingModeSummary();
+  fillList(detailNotes, lab.notes);
+  renderDetailQuickStats(lab);
+  setEditorFeedback(`Saved ${lab.notes.length} planning note${lab.notes.length === 1 ? "" : "s"} for ${lab.shortName || lab.name}.`);
 }
 
 function setReferenceImageFeedback(message) {
@@ -1925,6 +1959,8 @@ function renderDetailPanel() {
     equipmentReadinessFill.style.width = "0%";
     detailSpace.innerHTML = "";
     detailNotes.innerHTML = "";
+    planningNotesInput.value = "";
+    planningNotesInput.disabled = true;
     selectedLabNameInput.value = "";
     selectedLabNameInput.disabled = true;
     newEquipmentInput.value = "";
@@ -1964,19 +2000,7 @@ function renderDetailPanel() {
   detailSummary.textContent = state.presentationMode
     ? `${selectedLab.summary} ${selectedLab.outlook}.`
     : selectedLab.summary;
-  if (state.presentationMode) {
-    detailQuickStats.innerHTML = "";
-  } else {
-    detailQuickStats.innerHTML = `
-      <span class="quickstat-pill status-${selectedLab.status}">${statusConfig[selectedLab.status].label}</span>
-      <span class="quickstat-pill">${selectedLab.equipment.length} equipment items</span>
-      <span class="quickstat-pill">${selectedLab.space.length} space needs</span>
-      <span class="quickstat-pill">${selectedLab.notes.length} planning notes</span>
-      <span class="quickstat-pill">${(selectedLab.squareFeet || 0).toLocaleString()} sq ft</span>
-      <span class="quickstat-pill">${priorityLabel(selectedLab.priority)}</span>
-      <span class="quickstat-pill">${phaseLabel(selectedLab.phase)}</span>
-    `;
-  }
+  renderDetailQuickStats(selectedLab);
   presentationBriefGrid.innerHTML = `
     <article class="presentation-brief-card">
       <span class="presentation-brief-label">Decision Status</span>
@@ -2042,6 +2066,8 @@ function renderDetailPanel() {
   renderEquipment(selectedLab);
   renderSpace(selectedLab.space);
   fillList(detailNotes, selectedLab.notes);
+  planningNotesInput.disabled = false;
+  planningNotesInput.value = selectedLab.notes.join("\n");
   selectedLabNameInput.disabled = false;
   newEquipmentInput.disabled = false;
   saveLabNameBtn.disabled = false;
@@ -2325,6 +2351,11 @@ sharedUseInput.addEventListener("input", (event) => {
 buildingImpactInput.addEventListener("input", (event) => {
   setActiveDetailSection("planning");
   updateSelectedLabPlanningField("buildingImpact", event.target.value);
+});
+
+planningNotesInput.addEventListener("input", (event) => {
+  setActiveDetailSection("notes");
+  updateSelectedLabNotes(event.target.value);
 });
 
 if (referenceImageInput) {
